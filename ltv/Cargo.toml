@@ -13,3 +13,6 @@ readme="README.md"
 
 [dependencies]
 byteorder = "1"
+
+[dev-dependencies]
+ltv_derive = { version = "0.1", path = "../ltv_derive" }

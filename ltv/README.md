@@ -1,6 +1,6 @@
 # LTV
 ```
-ltv="1"
+ltv="0.1"
 ```
 
 [![](https://img.shields.io/crates/v/ltv?style=for-the-badge)](https://crates.io/crates/ltv)

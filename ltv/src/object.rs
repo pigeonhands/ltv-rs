@@ -5,6 +5,7 @@ use crate::{
     error::{LTVResult, LTVError}
 };
 use byteorder::{ByteOrder};
+
 pub trait LTVObjectGroup<'a, ED:ByteOrder=DefaultED> : Sized {
     fn to_ltv(&self) -> Vec<u8>;
     fn from_ltv(data: &'a [u8]) -> Option<Self>;
@@ -17,7 +18,6 @@ pub trait LTVItem<'a, ED:ByteOrder=DefaultED> : Sized {
 }
 
 pub trait LTVObject<'a, ED:ByteOrder, const LENGTH_BYTE:usize> : LTVItem<'a, ED> {
-    const LTV_ID : usize;
 
     fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item> {
         use crate::reader::LTVReader;
@@ -25,7 +25,7 @@ pub trait LTVObject<'a, ED:ByteOrder, const LENGTH_BYTE:usize> : LTVItem<'a, ED>
         Ok(Self::from_ltv(obj_id,data)?)
     }
 
-    fn to_ltv_object(&self) -> Vec<u8> {
+    fn to_ltv_object(&self, object_id: u8) -> Vec<u8> {
         let mut data = self.to_ltv();
         let mut out_ltv = Vec::with_capacity(LENGTH_BYTE+1);
         match LENGTH_BYTE{
@@ -33,6 +33,7 @@ pub trait LTVObject<'a, ED:ByteOrder, const LENGTH_BYTE:usize> : LTVItem<'a, ED>
             2 => ED::write_u16(&mut out_ltv, (data.len()+1) as u16),
             _ => panic!("Unsupported length byte {}", LENGTH_BYTE)
         };
+        out_ltv.push(object_id);
         out_ltv.append(&mut data);
 
         out_ltv
@@ -41,7 +42,7 @@ pub trait LTVObject<'a, ED:ByteOrder, const LENGTH_BYTE:usize> : LTVItem<'a, ED>
 
 impl<ED:ByteOrder> LTVItem<'_, ED> for Vec<u8> {
     type Item = Self;
-    fn from_ltv(field_id:usize, data: &[u8]) -> LTVResult<Self> {
+    fn from_ltv(_field_id:usize, data: &[u8]) -> LTVResult<Self> {
         Ok(Vec::from(data))
     }
 
@@ -269,4 +270,6 @@ impl<ED:ByteOrder> LTVItem<'_, ED> for f32 {
         buff
     }
 }
+
+
 

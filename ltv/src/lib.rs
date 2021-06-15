@@ -3,9 +3,12 @@ mod object;
 mod error;
 mod writer;
 
-use byteorder::{BigEndian};
-type DefaultED = BigEndian;
+//use ltv_derive::*;
 
+use byteorder::{BigEndian};
+pub type DefaultED = BigEndian;
+
+pub use byteorder;
 pub use object::{LTVItem, LTVObject, LTVObjectGroup};
 pub use reader::LTVReader;
 pub use writer::LTVContainer;
@@ -14,6 +17,8 @@ pub use error::{LTVError, LTVResult};
 pub mod ed {
     pub use byteorder::{BE, LE};
 }
+
+
 
 #[cfg(test)]
 mod tests {
@@ -52,40 +57,5 @@ use crate::*;
         assert_eq!(&buffer, &[2, 0x01, 0x35]);
     }
 
-/* 
-    #[test]
-    fn writer_to_reader_enum() {
-        let (i1_before, i1_after) = {
-            let before = EnumLTV::Item1(0x3456);
-
-            let bytes = before.to_ltv();
-            let after = EnumLTV::from_ltv(0, &bytes).unwrap();
-
-            (before, after)
-        };
-
-    }
-    */
 }
 
-
-/*
-enum MultipleObj{
-    Item1(u8),
-    Item2(u16)
-}
-
-#[ltv_object]
-struct MyObj {
-   #[field(1)]
-   a: u8,
-
-   #[field(2)]
-   b: u16
-
-   #[field(3)]
-   c: MultipleObj
-}
-
-
-*/

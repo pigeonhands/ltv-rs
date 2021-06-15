@@ -126,7 +126,6 @@ impl<'a, ED: ByteOrder, const LENGTH_SIZE:usize> LTVReader<'a, ED, LENGTH_SIZE> 
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use std::io;
     use byteorder::ByteOrder;
 
     #[test]
@@ -145,17 +144,17 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq, Eq)]
-    struct inner_struct_data {
+    struct InnerStructData {
         field1: u8,
         field2: u16
     }
-    impl<ED:ByteOrder> LTVItem<'_, ED> for inner_struct_data {
-        type Item = inner_struct_data;
+    impl<ED:ByteOrder> LTVItem<'_, ED> for InnerStructData {
+        type Item = InnerStructData;
         fn from_ltv(field_id:usize, data: &[u8]) -> LTVResult<Self> {
             let reader = LTVReader::<ed::BE, 1>::new(&data);
 
             Ok(
-                inner_struct_data{
+                InnerStructData{
                     field1: reader.get_item::<u8>(0x1)?,
                     field2: reader.get_item::<u16>(0x2)?,
                 }
@@ -190,8 +189,8 @@ mod tests {
         let field_1 = reader.get_item::<u8>(0x1).unwrap();
         assert_eq!(field_1, 0xFF);
 
-        let field_2 = reader.get_item::<inner_struct_data>(0x2).unwrap();
-        assert_eq!(field_2, inner_struct_data{ field1: 0x55, field2: 0x0100 });
+        let field_2 = reader.get_item::<InnerStructData>(0x2).unwrap();
+        assert_eq!(field_2, InnerStructData{ field1: 0x55, field2: 0x0100 });
     }
 
 

@@ -1,5 +1,6 @@
 [workspace]
 
 members = [
-    "ltv"
+    "ltv",
+    "ltv_derive"
 ]
