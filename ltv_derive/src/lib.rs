@@ -1,6 +1,6 @@
-use syn::{Attribute, Data, DataStruct, DeriveInput, Fields, LitInt, LitStr, parse_macro_input};
-use ::quote::{self, quote};
-use proc_macro2::{self, TokenStream};
+use syn::{Attribute, Data, DataStruct, DeriveInput, Fields, LitInt, parse_macro_input};
+use ::quote::{quote};
+use proc_macro2::{self};
 
 
 fn generate_from_ltv(fields: &[(usize, Option<syn::Ident>, syn::Type)]) -> proc_macro2::TokenStream {
@@ -25,7 +25,7 @@ fn generate_from_ltv(fields: &[(usize, Option<syn::Ident>, syn::Type)]) -> proc_
 }
 
 fn generate_to_ltv(fields: &[(usize, Option<syn::Ident>, syn::Type)]) -> proc_macro2::TokenStream {
-    let ltv_fields = fields.iter().map(|(ltv_id, ident, ty)| {
+    let ltv_fields = fields.iter().map(|(ltv_id, ident, _ty)| {
         quote! {
             buffer.write_ltv(#ltv_id, &self.#ident).ok();
         }

@@ -3,7 +3,7 @@ mod object;
 mod error;
 mod writer;
 
-//use ltv_derive::*;
+pub use ltv_derive::*;
 
 use byteorder::{BigEndian};
 pub type DefaultED = BigEndian;
@@ -22,7 +22,6 @@ pub mod ed {
 
 #[cfg(test)]
 mod tests {
-   use std::u128;
 
 use crate::*;
     

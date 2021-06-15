@@ -150,7 +150,7 @@ mod tests {
     }
     impl<ED:ByteOrder> LTVItem<'_, ED> for InnerStructData {
         type Item = InnerStructData;
-        fn from_ltv(field_id:usize, data: &[u8]) -> LTVResult<Self> {
+        fn from_ltv(_field_id:usize, data: &[u8]) -> LTVResult<Self> {
             let reader = LTVReader::<ed::BE, 1>::new(&data);
 
             Ok(

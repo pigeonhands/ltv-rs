@@ -1,5 +1,5 @@
 use ltv::*;
-use ltv_derive::*;
+
 #[derive(Debug, Ltv, Default, PartialEq, Eq)]
 struct ExampleStruct {
     #[ltv_field(1)]
