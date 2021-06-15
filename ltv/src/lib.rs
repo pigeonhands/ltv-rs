@@ -1,32 +1,32 @@
-mod reader;
-mod object;
 mod error;
+mod object;
+mod reader;
+mod sets;
 mod writer;
 
 pub use ltv_derive::*;
 
-use byteorder::{BigEndian};
+use byteorder::BigEndian;
 pub type DefaultED = BigEndian;
 
 pub use byteorder;
+pub use error::{LTVError, LTVResult};
 pub use object::{LTVItem, LTVObject, LTVObjectGroup};
 pub use reader::LTVReader;
+pub use sets::LtvObjectSet;
 pub use writer::LTVContainer;
-pub use error::{LTVError, LTVResult};
 
 pub mod ed {
     pub use byteorder::{BE, LE};
 }
 
-
-
 #[cfg(test)]
 mod tests {
 
-use crate::*;
-    
+    use crate::*;
+
     #[derive(Debug, PartialEq, Eq)]
-    struct BasicLTV{
+    struct BasicLTV {
         field1: u8,
     }
 
@@ -34,7 +34,7 @@ use crate::*;
         type Item = BasicLTV;
         fn from_ltv(_: usize, data: &'a [u8]) -> LTVResult<Self::Item> {
             let reader = LTVReader::<ed::BE, 1>::new(data);
-            Ok(BasicLTV{
+            Ok(BasicLTV {
                 field1: reader.get_item::<u8>(0x01)?,
             })
         }
@@ -46,15 +46,11 @@ use crate::*;
     }
     #[test]
     fn writer_to_reader() {
-        let original = BasicLTV{
-            field1: 0x35
-        };
+        let original = BasicLTV { field1: 0x35 };
 
         let buffer = original.to_ltv();
         let out = BasicLTV::from_ltv(0x01, &buffer).unwrap();
         assert_eq!(original, out);
         assert_eq!(&buffer, &[2, 0x01, 0x35]);
     }
-
 }
-
