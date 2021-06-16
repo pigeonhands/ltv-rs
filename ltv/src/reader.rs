@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     error::{LTVError, LTVResult},
     object::LTVItem,
-    ByteOrder, DefaultED,
+    ByteOrder,
 };
 
 pub struct LTVFieldIterator<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize> {
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn basic_reader() {
         let input_data: &[u8] = &[0x04, 0x01, 0x02, 0x01, 0xFF];
-        let reader = LTVReader::<DefaultED, 1>::new(&input_data[2..]);
+        let reader = LTVReader::<DEFAULT_ED, 1>::new(&input_data[2..]);
 
         let field_1 = reader.get_item::<u8>(0x1).unwrap();
         assert_eq!(field_1, 0xFF);
@@ -135,10 +135,10 @@ mod tests {
         field1: u8,
         field2: u16,
     }
-    impl LTVItem<DefaultED> for InnerStructData {
+    impl<const ED: ByteOrder> LTVItem<ED> for InnerStructData {
         type Item = InnerStructData;
         fn from_ltv(_field_id: usize, data: &[u8]) -> LTVResult<Self> {
-            let reader = LTVReader::<DefaultED, 1>::new(&data);
+            let reader = LTVReader::<ED, 1>::new(&data);
 
             Ok(InnerStructData {
                 field1: reader.get_item::<u8>(0x1)?,
@@ -156,7 +156,7 @@ mod tests {
         let input_data: &[u8] = &[
             0x04, 0x01, 0x02, 0x01, 0xFF, 0x08, 0x02, 0x02, 0x01, 0x55, 0x03, 0x02, 0x01, 0x00,
         ];
-        let reader = LTVReader::<DefaultED, 1>::new(&input_data[2..]);
+        let reader = LTVReaderLE::<1>::new(&input_data[2..]);
 
         let field_1 = reader.get_item::<u8>(0x1).unwrap();
         assert_eq!(field_1, 0xFF);
@@ -166,7 +166,7 @@ mod tests {
             field_2,
             InnerStructData {
                 field1: 0x55,
-                field2: 0x0100
+                field2: 0x0001
             }
         );
     }

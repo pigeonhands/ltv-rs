@@ -7,6 +7,41 @@ ltv="0.1"
 
 
 ----
+
+```Rust
+use ltv::*;
+
+#[derive(Debug, PartialEq, Eq, Ltv, Default)]
+struct InnerStructData {
+    #[ltv_field(1)]
+    field1: u8,
+    #[ltv_field(2)]
+    field2: u16,
+}
+
+#[derive(Debug, Ltv, Default, PartialEq, Eq)]
+struct ExampleStruct {
+    #[ltv_field(1)]
+    field1: InnerStructData,
+    #[ltv_field(2)]
+    field2: Option<u8>,
+}
+
+fn main() {
+    let original_ltv = ExampleStruct {
+        field1: InnerStructData{ field1: 19, field2: 77},
+        field2: None,
+    };
+    let ltv_bytes = original_ltv.to_ltv_object(0x44);
+
+    println!("{:?}", &ltv_bytes);
+    let new_ltv = ExampleStruct::from_ltv_object(&ltv_bytes).unwrap();
+    assert_eq!(original_ltv, new_ltv);
+}
+
+```
+
+
 ## Basic usage
 
 ```Rust
@@ -15,18 +50,18 @@ struct BasicLTV{
     field1: u8,
 }
 
-impl<'a> LTVItem<'a, ed::BE> for BasicLTV {
+impl<'a> LTVItem<{ ByteOrder::LE }> for BasicLTV {
     type Item = BasicLTV;
-    fn from_ltv(_: usize, data: &'a [u8]) -> LTVResult<Self::Item> {
-        let reader = LTVReader::<ed::BE, 1>::new(data);
-        Ok(BasicLTV{
+    fn from_ltv(_: usize, data: &[u8]) -> LTVResult<Self::Item> {
+        let reader = LTVReaderLE::<1>::new(data);
+        Ok(BasicLTV {
             field1: reader.get_item::<u8>(0x01)?,
         })
     }
     fn to_ltv(&self) -> Vec<u8> {
-        let mut buffer = Vec::with_capacity(3);
-        buffer.write_ltv(0x01, &self.field1).ok();
-        buffer
+        let mut writer = LTVWriterLE::new(Vec::with_capacity(3));
+        writer.write_ltv(0x01, &self.field1).ok();
+        writer.into_inner()
     }
 }
 ```
@@ -48,24 +83,22 @@ assert_eq!(&buffer, &[2, 0x01, 0x35]);
 
 ```Rust
 #[derive(Debug, PartialEq, Eq)]
-struct inner_struct_data {
+struct InnerStructData {
     field1: u8,
-    field2: u16
+    field2: u16,
 }
-impl<ED:ByteOrder> LTVItem<'_, ED> for inner_struct_data {
-    type Item = inner_struct_data;
-    fn from_ltv(field_id:usize, data: &[u8]) -> LTVResult<Self> {
-        let reader = LTVReader::<ed::BE, 1>::new(&data);
+impl<const ED: ByteOrder> LTVItem<ED> for InnerStructData {
+    type Item = InnerStructData;
+    fn from_ltv(_field_id: usize, data: &[u8]) -> LTVResult<Self> {
+        let reader = LTVReader::<ED, 1>::new(&data);
 
-        Ok(
-            inner_struct_data{
-                field1: reader.get_item::<u8>(0x1)?,
-                field2: reader.get_item::<u16>(0x2)?,
-            }
-        )
+        Ok(InnerStructData {
+            field1: reader.get_item::<u8>(0x1)?,
+            field2: reader.get_item::<u16>(0x2)?,
+        })
     }
-    
-    fn to_ltv(&self) -> Vec<u8>{
+
+    fn to_ltv(&self) -> Vec<u8> {
         unimplemented!()
     }
 }
@@ -73,27 +106,21 @@ impl<ED:ByteOrder> LTVItem<'_, ED> for inner_struct_data {
 
 
 ```Rust
-let input_data : &[u8] = &[
-    0x04, 
-    0x01,
-    0x02,
-    0x01,
-    0xFF,
-    0x08,
-    0x02,
-    0x02,
-    0x01,
-    0x55,
-    0x03,
-    0x02,
-    0x01,
-    0x00
+let input_data: &[u8] = &[
+    0x04, 0x01, 0x02, 0x01, 0xFF, 0x08, 0x02, 0x02, 0x01, 0x55, 0x03, 0x02, 0x01, 0x00,
 ];
-let reader = LTVReader::<ed::BE, 1>::new(&input_data[2..]);
+let reader = LTVReaderLE::<1>::new(&input_data[2..]);
 
 let field_1 = reader.get_item::<u8>(0x1).unwrap();
 assert_eq!(field_1, 0xFF);
 
-let field_2 = reader.get_item::<inner_struct_data>(0x2).unwrap();
-assert_eq!(field_2, inner_struct_data{ field1: 0x55, field2: 0x0100 });
+let field_2 = reader.get_item::<InnerStructData>(0x2).unwrap();
+
+assert_eq!(
+    field_2,
+    InnerStructData {
+        field1: 0x55,
+        field2: 0x0100
+    }
+);
 ```

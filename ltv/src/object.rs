@@ -1,4 +1,4 @@
-use std::{convert::TryInto, mem, u128};
+use std::{convert::TryInto, u128};
 
 use crate::{
     error::{LTVError, LTVResult},
@@ -10,7 +10,7 @@ pub trait LTVObjectGroup<'a, const ED: ByteOrder>: Sized {
     fn from_ltv(data: &'a [u8]) -> Option<Self>;
 }
 
-pub trait LTVItem<const ED: ByteOrder>: Sized {
+pub trait LTVItem<const ED: ByteOrder> {
     type Item: LTVItem<ED>;
     fn from_ltv(field_type: usize, data: &[u8]) -> LTVResult<Self::Item>;
     fn to_ltv(&self) -> Vec<u8>;
@@ -50,9 +50,12 @@ pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>: LTVItem<
 
 impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
     type Item = Option<T::Item>;
-    fn from_ltv(field_id: usize, data: &'_ [u8]) -> LTVResult<Self::Item> {
-        let o = T::from_ltv(field_id, data);
+    fn from_ltv(_field_id: usize, _data: &'_ [u8]) -> LTVResult<Self::Item> {
+        todo!()
+        /*
+        let _o = T::from_ltv(field_id, data);
         Ok(None)
+         */
     }
 
     fn to_ltv(&self) -> Vec<u8> {
@@ -87,7 +90,7 @@ macro_rules! impl_numeric_ltvitem {
 
             match numeric_value {
                 Ok(b) => Ok(b),
-                Err(e) => Err(LTVError::WrongSize {
+                Err(_) => Err(LTVError::WrongSize {
                     field_id: field_id,
                     expected: ($i::BITS/8) as usize,
                     recieved: data.len(),

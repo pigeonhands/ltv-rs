@@ -59,10 +59,9 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
             .into_iter()
             .filter(|e| e.path.is_ident("ltv"))
             .next();
-
         match bo_lit {
-            Some(e) => quote! { #e.tokens},
-            None => quote! { ::ltv::DefaultED },
+            Some(Attribute { tokens,..  }) => quote! { ::ltv::#tokens},
+            None => quote! { ::ltv::DEFAULT_ED },
         }
     };
 
@@ -87,7 +86,7 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
     };
 
     let to_ltv_fn = {
-        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id }| {
+        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ltv_id,.. }| {
             quote! {
                 buffer.write_ltv(#ltv_id, &self.#ident).ok();
             }

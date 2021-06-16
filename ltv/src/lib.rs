@@ -1,5 +1,4 @@
 #![feature(const_generics)]
-#![feature(int_bits_const)]
 
 mod error;
 mod object;
@@ -15,7 +14,7 @@ pub enum ByteOrder {
     LE,
 }
 
-pub const DefaultED: ByteOrder = ByteOrder::BE;
+pub const DEFAULT_ED: ByteOrder = ByteOrder::BE;
 
 pub use error::{LTVError, LTVResult};
 pub use object::{LTVItem, LTVObject, LTVObjectGroup};
@@ -25,8 +24,8 @@ pub use writer::LTVContainer;
 pub use writer::LTVWriter;
 
 //Helper types
-pub type LTVWriterBE<W: LTVContainer<{ ByteOrder::BE }>> = LTVWriter<W, { ByteOrder::BE }>;
-pub type LTVWriterLE<W: LTVContainer<{ ByteOrder::LE }>> = LTVWriter<W, { ByteOrder::LE }>;
+pub type LTVWriterBE<W> = LTVWriter<W, { ByteOrder::BE }>;
+pub type LTVWriterLE<W> = LTVWriter<W, { ByteOrder::LE }>;
 
 pub type LTVReaderBE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::BE }, LENGTH_SIZE>;
 pub type LTVReaderLE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::LE }, LENGTH_SIZE>;
@@ -44,13 +43,13 @@ mod tests {
     impl<'a> LTVItem<{ ByteOrder::BE }> for BasicLTV {
         type Item = BasicLTV;
         fn from_ltv(_: usize, data: &[u8]) -> LTVResult<Self::Item> {
-            let reader = LTVReader::<DefaultED, 1>::new(data);
+            let reader = LTVReaderLE::<1>::new(data);
             Ok(BasicLTV {
                 field1: reader.get_item::<u8>(0x01)?,
             })
         }
         fn to_ltv(&self) -> Vec<u8> {
-            let mut writer = LTVWriter::<_, { ByteOrder::BE }>::new(Vec::with_capacity(3));
+            let mut writer = LTVWriterLE::new(Vec::with_capacity(3));
             writer.write_ltv(0x01, &self.field1).ok();
             writer.into_inner()
         }
