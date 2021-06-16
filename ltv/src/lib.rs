@@ -1,3 +1,6 @@
+#![feature(const_generics)]
+#![feature(int_bits_const)]
+
 mod error;
 mod object;
 mod reader;
@@ -6,19 +9,27 @@ mod writer;
 
 pub use ltv_derive::*;
 
-use byteorder::BigEndian;
-pub type DefaultED = BigEndian;
+#[derive(Debug, PartialEq, Eq)]
+pub enum ByteOrder {
+    BE,
+    LE,
+}
 
-pub use byteorder;
+pub const DefaultED: ByteOrder = ByteOrder::BE;
+
 pub use error::{LTVError, LTVResult};
 pub use object::{LTVItem, LTVObject, LTVObjectGroup};
 pub use reader::LTVReader;
 pub use sets::LtvObjectSet;
 pub use writer::LTVContainer;
+pub use writer::LTVWriter;
 
-pub mod ed {
-    pub use byteorder::{BE, LE};
-}
+//Helper types
+pub type LTVWriterBE<W: LTVContainer<{ ByteOrder::BE }>> = LTVWriter<W, { ByteOrder::BE }>;
+pub type LTVWriterLE<W: LTVContainer<{ ByteOrder::LE }>> = LTVWriter<W, { ByteOrder::LE }>;
+
+pub type LTVReaderBE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::BE }, LENGTH_SIZE>;
+pub type LTVReaderLE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::LE }, LENGTH_SIZE>;
 
 #[cfg(test)]
 mod tests {
@@ -30,18 +41,18 @@ mod tests {
         field1: u8,
     }
 
-    impl<'a> LTVItem<'a, ed::BE> for BasicLTV {
+    impl<'a> LTVItem<{ ByteOrder::BE }> for BasicLTV {
         type Item = BasicLTV;
-        fn from_ltv(_: usize, data: &'a [u8]) -> LTVResult<Self::Item> {
-            let reader = LTVReader::<ed::BE, 1>::new(data);
+        fn from_ltv(_: usize, data: &[u8]) -> LTVResult<Self::Item> {
+            let reader = LTVReader::<DefaultED, 1>::new(data);
             Ok(BasicLTV {
                 field1: reader.get_item::<u8>(0x01)?,
             })
         }
         fn to_ltv(&self) -> Vec<u8> {
-            let mut buffer = Vec::with_capacity(3);
-            buffer.write_ltv(0x01, &self.field1).ok();
-            buffer
+            let mut writer = LTVWriter::<_, { ByteOrder::BE }>::new(Vec::with_capacity(3));
+            writer.write_ltv(0x01, &self.field1).ok();
+            writer.into_inner()
         }
     }
     #[test]
