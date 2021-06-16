@@ -4,14 +4,14 @@ version = 3
 
 [[package]]
 name = "ltv"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ltv_derive",
 ]
 
 [[package]]
 name = "ltv_derive"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ltv",
  "ltv_derive_impl",
