@@ -24,8 +24,8 @@ pub use writer::LTVContainer;
 pub use writer::LTVWriter;
 
 //Helper types
-pub type LTVWriterBE<W> = LTVWriter<W, { ByteOrder::BE }>;
-pub type LTVWriterLE<W> = LTVWriter<W, { ByteOrder::LE }>;
+pub type LTVWriterBE<W, const LENGTH_SIZE: usize> = LTVWriter<W, { ByteOrder::BE }, LENGTH_SIZE>;
+pub type LTVWriterLE<W, const LENGTH_SIZE: usize> = LTVWriter<W, { ByteOrder::LE }, LENGTH_SIZE>;
 
 pub type LTVReaderBE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::BE }, LENGTH_SIZE>;
 pub type LTVReaderLE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::LE }, LENGTH_SIZE>;
@@ -49,7 +49,7 @@ mod tests {
             })
         }
         fn to_ltv(&self) -> Vec<u8> {
-            let mut writer = LTVWriterLE::new(Vec::with_capacity(3));
+            let mut writer = LTVWriterLE::<_, 1>::new(Vec::with_capacity(3));
             writer.write_ltv(0x01, &self.field1).ok();
             writer.into_inner()
         }

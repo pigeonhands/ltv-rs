@@ -16,14 +16,14 @@ pub trait LTVItem<const ED: ByteOrder> {
     fn to_ltv(&self) -> Vec<u8>;
 }
 
-pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>: LTVItem<ED> {
+pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize, const OBJECT_ID: u8>: LTVItem<ED> {
     fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item> {
         use crate::reader::LTVReader;
         let (_, obj_id, data) = LTVReader::<'a, ED, LENGTH_BYTE>::parse_ltv(data)?;
         Ok(Self::from_ltv(obj_id, data)?)
     }
 
-    fn to_ltv_object(&self, object_id: u8) -> Vec<u8> {
+    fn to_ltv_object(&self) -> Vec<u8> {
         let mut data = self.to_ltv();
         let mut out_ltv = Vec::with_capacity(LENGTH_BYTE + 1);
 
@@ -41,7 +41,7 @@ pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>: LTVItem<
         };
 
         //ED::write_u16(&mut out_ltv, (data.len() + 1) as u16),
-        out_ltv.push(object_id);
+        out_ltv.push(OBJECT_ID);
         out_ltv.append(&mut data);
 
         out_ltv
@@ -50,12 +50,12 @@ pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>: LTVItem<
 
 impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
     type Item = Option<T::Item>;
-    fn from_ltv(_field_id: usize, _data: &'_ [u8]) -> LTVResult<Self::Item> {
-        todo!()
-        /*
-        let _o = T::from_ltv(field_id, data);
-        Ok(None)
-         */
+    fn from_ltv(field_id: usize, data: &'_ [u8]) -> LTVResult<Self::Item> {
+        match T::from_ltv(field_id, data) {
+            Ok(e) => Ok(Some(e)),
+            Err(LTVError::NotFound(_)) => Ok(None),
+            Err(e) => return Err(e),
+        }
     }
 
     fn to_ltv(&self) -> Vec<u8> {
