@@ -1,4 +1,5 @@
 #![feature(const_generics)]
+#![feature(int_bits_const)]
 
 mod error;
 mod object;

@@ -16,7 +16,9 @@ pub trait LTVItem<const ED: ByteOrder> {
     fn to_ltv(&self) -> Vec<u8>;
 }
 
-pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize, const OBJECT_ID: u8>: LTVItem<ED> {
+pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize, const OBJECT_ID: u8>:
+    LTVItem<ED>
+{
     fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item> {
         use crate::reader::LTVReader;
         let (_, obj_id, data) = LTVReader::<'a, ED, LENGTH_BYTE>::parse_ltv(data)?;
