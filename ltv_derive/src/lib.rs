@@ -35,10 +35,12 @@ mod tests {
     struct LTVObjectExample {
         #[ltv_field(1)]
         field1: u8,
+        #[ltv_field(2)]
+        field2: Option<u8>
     }
     #[test]
     fn output_test() {
-        let my_object_bytes = LTVObjectExample { field1: 55 }.to_ltv_object();
+        let my_object_bytes = LTVObjectExample { field1: 55, field2: None }.to_ltv_object();
         assert_eq!(
             my_object_bytes,
             vec![

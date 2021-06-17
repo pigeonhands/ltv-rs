@@ -12,8 +12,13 @@ impl<W: io::Write, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVContainer<E
     for W
 {
     fn write_ltv<'a, T: LTVItem<ED>>(&mut self, obj_id: usize, obj: &T) -> io::Result<usize> {
-        let mut size: usize = 0;
         let data = obj.to_ltv();
+        if data.len() == 0 {
+            return Ok(0);
+        }
+
+        let mut size: usize = 0;
+        
         match LENGTH_SIZE {
             1 => size += self.write(&[(data.len() as u8) + 1, obj_id as u8])?,
             2 => {
