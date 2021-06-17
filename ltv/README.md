@@ -5,8 +5,28 @@ ltv="0.1"
 
 [![](https://img.shields.io/crates/v/ltv?style=for-the-badge)](https://crates.io/crates/ltv)
 
-
 ----
+## LTV Explination
+```Rust
+#[derive(Debug, Ltv, Default, PartialEq, Eq)]
+#[object(id = 10, length_size=1, byte_order=BE)]
+struct LTVObjectExample {
+    #[ltv_field(1)]
+    field1: u8,
+}
+
+let my_object_bytes = LTVObjectExample{ field1: 55 }.to_ltv_object();
+assert_eq!(my_object_bytes, vec![
+    4,   // Total Length (length can be 1 or two bytes by setting length_size)
+    10, // Outer object ID (LTVObjectExample)
+    2,   // Length of Field (field1)
+    1,   // Field ID (field1)
+    55   //Field Value
+])
+```
+
+
+## Usage
 
 ```Rust
 
