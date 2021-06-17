@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use ::quote::quote;
 use proc_macro2;
-use syn::{parse_macro_input, Attribute, Data, DataStruct, DeriveInput,AttributeArgs, Fields, LitInt, LitStr, NestedMeta};
-
+use syn::{parenthesized, Data, DataStruct, DeriveInput, Fields, Ident, LitInt,Token, parse::{ParseStream, Parser}};
 struct LtvFieldInfo {
     ltv_id: usize,
     ident: Option<syn::Ident>,
@@ -29,48 +28,85 @@ struct LTVObjectAttrabutes {
     pub byte_order: ByteOrderOption,
 }
 
+
 impl LTVObjectAttrabutes {
     pub fn parse(input: &DeriveInput) -> Self {
-        let mut attrs = Self::default();
+        if let Some(a) = input.attrs.iter().filter(|a| a.path.is_ident("object")).next() {
+            let tokens = a.tokens.clone();
+            let o = (|input_bracketed: ParseStream<'_>| -> syn::parse::Result<Self> {
+                let input;
+                parenthesized!(input in input_bracketed);
+        
+                let mut ltv_args = LTVObjectAttrabutes::default();
 
-        for m in input.attrs
-        .iter()
-        .map(|a| a.parse_meta().expect("Failed to parse meta")){
-            match m {
-                syn::Meta::NameValue(nv) => {
-                    if nv.path.is_ident("object_id"){
-                        attrs.object_id = match &nv.lit {
-                            syn::Lit::Int(i) => Some(i.base10_parse().expect("object_id myst be u8")),
-                            _ => panic!("Bad object_id"),
-                        }
+                let mut seen_arguments : HashSet<Ident> = HashSet::new();
+                loop{
+                    if input.is_empty() {
+                        break;
                     }
-                    if nv.path.is_ident("length_size"){
-                        attrs.length_size = match &nv.lit {
-                            syn::Lit::Int(i) => Some(i.base10_parse().expect("length_size myst be u8")),
-                            _ => panic!("Bad length_size"),
-                        }
+                    
+                    let ident: Ident = input.parse()?;
+                    let _eq_token: Token![=] = input.parse()?;
+
+                    if !seen_arguments.insert(ident.clone()) {
+                        return Err(syn::parse::Error::new(
+                            ident.span(),
+                            "argument appears more than once",
+                        ));
                     }
-                   
-                },
-                syn::Meta::Path(p) => {
-                    if p.is_ident("be"){
-                        attrs.byte_order = ByteOrderOption::BE;
+
+                    let ident_str = ident.to_string();
+                    match ident_str.as_str() {
+                        "id" => {
+                            ltv_args.object_id = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
+                                ident.span(),
+                                "unexpected argument value; this should be a u8",
+                            ))?);
+                        },
+                        "length_size" => {
+                            ltv_args.length_size = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
+                                ident.span(),
+                                "unexpected argument value; this should be a usize",
+                            ))?);
+                        },"field_length_size" => {
+                            ltv_args.field_length_size = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
+                                ident.span(),
+                                "unexpected argument value; this should be a usize",
+                            ))?);
+                        }, "byte_order" => {
+                            match input.parse::<Ident>()?.to_string().to_uppercase().as_str() {
+                                "BE" => {
+                                    ltv_args.byte_order = ByteOrderOption::BE;
+                                }, "LE" => {
+                                    ltv_args.byte_order = ByteOrderOption::LE;
+                                },
+                                _ => return Err(syn::parse::Error::new(
+                                    ident.span(),
+                                    "byte_order must be BE or LE",
+                                ))
+                            }
+                        },
+                        _ => panic!("Invalid argument {}", &ident_str),
                     }
-                    if p.is_ident("le"){
-                        attrs.byte_order = ByteOrderOption::LE;
+
+                    if input.is_empty() {
+                        break;
                     }
-                },
-                _ => {},
-            }
-           
+                    let _: Token![,] = input.parse()?;
+                }
+                Ok(ltv_args)
+            })
+            .parse2(tokens)
+            .unwrap();
+            o
+        } else {
+            Self::default()
         }
-    
-       attrs
     }
 }
 
 pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
-    let attrs = LTVObjectAttrabutes::parse(&input);
+    let attrs = LTVObjectAttrabutes::parse(&input); 
 
     let fields = match input.data {
         Data::Struct(DataStruct {
@@ -120,24 +156,6 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
             }
         })
         .collect();
-
-
-/*
-    let s = fields_named.attrs
-        .into_iter().map(|e| format!("{}", e.tokens))
-        .collect::<Vec<String>>()
-        .join(", ");
-    panic!("{}", s); 
-
-
-    let s = input
-        .attrs
-        .into_iter().map(|e| format!("{}", e.parse_args::<syn::FieldsNamed>()))
-        .collect::<Vec<String>>()
-        .join(", ");
-    panic!("{}", s); 
-     */
-
 
  
     let byte_order = match attrs.byte_order{
@@ -201,7 +219,7 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
     };
     
 
-    quote! {
+    let e = quote! {
         #[automatically_derived]
         impl LTVItem<{#byte_order}> for #st_name {
             type Item = Self;
@@ -211,82 +229,12 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
         }
 
         #obj_impl
-    }
+    };
+
+   // use std::fs;
+   // fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
+    e
 }
 /*
 
-use syn::{
-    parse::{ParseStream, Parser},
-    punctuated::Punctuated,
-    Data, DataStruct, DeriveInput, Fields, Ident, LitInt, Token,
-};
-impl LTVObjectAttrabutes {
-    pub fn parse(input: &DeriveInput) -> Self {
-        if let Some(a) = input.attrs.iter().filter(|a| a.path.is_ident("ltv")).next() {
-            let tokens = a.tokens.clone();
-
-            let o = (|input: ParseStream<'_>| -> syn::parse::Result<Self> {
-                panic!("{}", input);
-                let mut ltv_args = LTVObjectAttrabutes::default();
-
-                let seen_arguments : HashSet<Ident> = HashSet::new();
-                loop{
-                    if input.is_empty() {
-                        break;
-                    }
-                    
-                    let ident: Ident = input.parse()?;
-                    let _eq_token: Token![=] = input.parse()?;
-
-                    if !seen_arguments.insert(ident.clone()) {
-                        return Err(syn::parse::Error::new(
-                            ident.span(),
-                            "argument appears more than once",
-                        ));
-                    }
-
-                    let ident_str = ident.to_string();
-                    match ident_str.as_str() {
-                        "id" => {
-                            ltv_args.object_id = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
-                                ident.span(),
-                                "unexpected argument value; this should be a u8",
-                            ))?);
-                        },
-                        "length_size" => {
-                            ltv_args.length_size = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
-                                ident.span(),
-                                "unexpected argument value; this should be a usize",
-                            ))?);
-                        },"field_length_size" => {
-                            ltv_args.field_length_size = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
-                                ident.span(),
-                                "unexpected argument value; this should be a usize",
-                            ))?);
-                        }, "byte_order" => {
-                            match input.parse::<Ident>()?.to_string().to_uppercase().as_str() {
-                                "BE" => {
-                                    ltv_args.byte_order = ByteOrderOption::BE;
-                                }, "LE" => {
-                                    ltv_args.byte_order = ByteOrderOption::LE;
-                                },
-                                _ => return Err(syn::parse::Error::new(
-                                    ident.span(),
-                                    "byte_order must be BE or LE",
-                                ))
-                            }
-                        },
-                        _ => panic!("Invalid argument {}", &ident_str),
-                    }
-                }
-                Ok(ltv_args)
-            })
-            .parse2(tokens)
-            .unwrap();
-            o
-        } else {
-            Self::default()
-        }
-    }
-}
 */

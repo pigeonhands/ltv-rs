@@ -3,7 +3,7 @@ mod sets;
 
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(Ltv, attributes(ltv_field, object_id, length_size, be, le))]
+#[proc_macro_derive(Ltv, attributes(ltv_field, object))]
 pub fn derive_ltv(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     object::impl_ltv(input).into()

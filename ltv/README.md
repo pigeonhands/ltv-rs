@@ -9,6 +9,9 @@ ltv="0.1"
 ----
 
 ```Rust
+
+use ltv::*;
+
 #[derive(Debug, PartialEq, Eq, Ltv, Default)]
 struct InnerStructData {
     #[ltv_field(1)]
@@ -18,18 +21,14 @@ struct InnerStructData {
 }
 
 #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-#[object_id = 10]
-#[length_size=1]
-#[be]
+#[object(id = 10, length_size=1, byte_order=BE)]
 struct ExampleStruct {
     #[ltv_field(1)]
     field1: InnerStructData,
     #[ltv_field(2)]
     field2: Option<u8>,
 }
-fn print_item<T: LTVItem<ED> + Debug, const ED: ByteOrder>(obj: &T) {
-    println!("{:?} -> ({:?})", obj, ED);
-}
+
 fn main() {
     let original_ltv = ExampleStruct {
         field1: InnerStructData {
@@ -39,16 +38,10 @@ fn main() {
         field2: None,
     };
 
-    print_item(&original_ltv);
-
     let ltv_bytes = original_ltv.to_ltv_object();
-
-    println!("{:?}", &ltv_bytes);
     let new_ltv = ExampleStruct::from_ltv_object(&ltv_bytes).unwrap();
     assert_eq!(original_ltv, new_ltv);
 }
-
-
 ```
 
 

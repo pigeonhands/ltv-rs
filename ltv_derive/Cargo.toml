@@ -1,6 +1,6 @@
 [package]
 name = "ltv_derive"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Sam Mackenzie <smackenzie@descartes.com>"]
 edition = "2018"
 
