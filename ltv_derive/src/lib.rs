@@ -9,11 +9,14 @@ mod tests {
     struct ExampleStruct {
         #[ltv_field(1)]
         field1: u8,
+
+        #[ltv_field(2)]
+        field2: [u8;3],
     }
 
     #[test]
     fn to_and_from_ltv_obj() {
-        let original_ltv = ExampleStruct { field1: 0x69 };
+        let original_ltv = ExampleStruct { field1: 0x69, field2: [12,34,56] };
         let ltv_bytes = original_ltv.to_ltv_object();
 
         println!("{:?}", &ltv_bytes);
@@ -23,7 +26,7 @@ mod tests {
 
     #[test]
     fn to_and_from_ltv() {
-        let original_ltv = ExampleStruct { field1: 0x69 };
+        let original_ltv = ExampleStruct { field1: 0x69, field2: [12,34,56] };
         let ltv_bytes = original_ltv.to_ltv();
 
         let new_ltv = ExampleStruct::from_ltv(10, &ltv_bytes).unwrap();

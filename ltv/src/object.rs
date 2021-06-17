@@ -79,6 +79,22 @@ impl<const ED: ByteOrder> LTVItem<ED> for Vec<u8> {
     }
 }
 
+
+impl<const ED: ByteOrder, const LENGTH: usize> LTVItem<ED> for [u8;LENGTH] {
+    type Item = Self;
+    fn from_ltv(field_id: usize, data: &[u8]) -> LTVResult<Self> {
+        data.try_into().map_err(|_| LTVError::WrongSize {
+            field_id: field_id,
+            expected: LENGTH,
+            recieved: data.len(),
+        })
+    }
+
+    fn to_ltv(&self) -> Vec<u8> {
+        (self as &[_]).into()
+    }
+}
+
 macro_rules! impl_numeric_ltvitem {
     ($($i:ident),+) => {
     $(
