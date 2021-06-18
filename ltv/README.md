@@ -15,14 +15,36 @@ struct LTVObjectExample {
     field1: u8,
 }
 
-let my_object_bytes = LTVObjectExample{ field1: 55 }.to_ltv_object();
-assert_eq!(my_object_bytes, vec![
+#[derive(Debug, Ltv, Default, PartialEq, Eq)]
+#[object(id = 11, length_size=1, byte_order=BE)]
+struct AnotherStruct {
+    #[ltv_field(1)]
+    field1: u8,
+}
+
+#[derive(Debug, LtvCollection, PartialEq, Eq)]
+enum MyCollection {
+    Object1(LTVObjectExample),
+    Object2(AnotherStruct),
+}
+
+let my_object_bytes = LTVObjectExample{ field1: 55 };
+assert_eq!(my_object_bytes.to_ltv_object(), vec![
     4,   // Total Length (length can be 1 or two bytes by setting length_size)
     10, // Outer object ID (LTVObjectExample)
     2,   // Length of Field (field1)
     1,   // Field ID (field1)
     55   //Field Value
-])
+]);
+
+assert_eq!(MyCollection::Object1(my_object_bytes).to_ltv_object(), vec![
+    4,   // Total Length (length can be 1 or two bytes by setting length_size)
+    10, // Outer object ID (LTVObjectExample)
+    2,   // Length of Field (field1)
+    1,   // Field ID (field1)
+    55   //Field Value
+]);
+
 ```
 
 

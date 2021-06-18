@@ -60,7 +60,7 @@ mod tests {
     #[derive(Debug, LtvCollection, PartialEq, Eq)]
     enum MyObjects {
         Object1(LTVObjectExample),
-        Object2(LTVObjectExample),
+        Object2(ExampleStruct),
     }
 
     #[test]
@@ -92,6 +92,35 @@ mod tests {
                 55  //Field Value
             ]
         )
+    }
+
+    #[test]
+    fn collection_obj_test_same_as_single() {
+        let o1 = LTVObjectExample { field1: 55, field2: None };
+        let o2 = ExampleStruct { field1: 0x69, field2: [12,34,56] };
+        assert_eq!(
+            o1.to_ltv_object(),
+            MyObjects::Object1(o1).to_ltv_object()
+        );
+
+        assert_eq!(
+            o2.to_ltv_object(),
+            MyObjects::Object2(o2).to_ltv_object()
+        );
+    }
+
+    #[test]
+    fn from_ltv_to_collection() {
+        let o1 = LTVObjectExample { field1: 55, field2: None };
+        let sbytes = o1.to_ltv_object();
+        let s1 = MyObjects::Object1(o1);
+       
+        
+        let s2 = MyObjects::from_ltv_object(&sbytes).unwrap();
+        assert_eq!(
+            s1,
+            s2
+        );
     }
      
 }
