@@ -124,6 +124,7 @@ mod tests {
     #[object(id = 10, length_size=1, byte_order=BE)]
     struct LTVObjectUnnamed(u32);
 
+    #[test]
     fn ltv_unnamed_strct() {
         let num : u32 = 1234567;
         let obj = LTVObjectUnnamed(num); 
