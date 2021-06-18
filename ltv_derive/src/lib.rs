@@ -55,4 +55,43 @@ mod tests {
             ]
         )
     }
+
+
+    #[derive(Debug, LtvCollection, PartialEq, Eq)]
+    enum MyObjects {
+        Object1(LTVObjectExample),
+        Object2(LTVObjectExample),
+    }
+
+    #[test]
+    fn collection_test() {
+        let my_object = LTVObjectExample { field1: 55, field2: None };
+        let obj_bytes = MyObjects::Object1(my_object).to_ltv();
+
+        assert_eq!(
+            obj_bytes,
+            vec![
+                2,  // Length of Field (field1)
+                1,  // Field ID (field1)
+                55  //Field Value
+            ]
+        )
+    }
+
+    #[test]
+    fn collection_obj_test() {
+        let my_object = LTVObjectExample { field1: 55, field2: None };
+        let obj_bytes = MyObjects::Object1(my_object).to_ltv_object();
+        assert_eq!(
+            obj_bytes,
+            vec![
+                4,  // Length of object  (length can be 1 or two bytes by setting length_size)
+                10, // Outer object ID (LTVObjectExample)
+                2,  // Length of Field (field1)
+                1,  // Field ID (field1)
+                55  //Field Value
+            ]
+        )
+    }
+     
 }

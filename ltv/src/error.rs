@@ -3,11 +3,11 @@ use std::error::Error;
 #[derive(Debug)]
 pub enum LTVError {
     WrongSize {
-        field_id: usize,
+        field_id: u8,
         expected: usize,
         recieved: usize,
     },
-    NotFound(usize),
+    NotFound(u8),
 }
 
 impl Error for LTVError {}

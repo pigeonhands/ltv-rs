@@ -43,15 +43,15 @@ impl<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize> Iterator
 }
 
 pub struct LTVFieldBinary {
-    pub field_id: usize,
+    pub field_id: u8,
     pub data: Vec<u8>,
 }
 
 impl<'a, const ED: ByteOrder> LTVItem<ED> for LTVFieldBinary {
     type Item = LTVFieldBinary;
-    fn from_ltv(field_type: usize, data: &[u8]) -> LTVResult<Self::Item> {
+    fn from_ltv(field_id: u8, data: &[u8]) -> LTVResult<Self::Item> {
         Ok(Self {
-            field_id: field_type,
+            field_id,
             data: Vec::from(data),
         })
     }
@@ -75,7 +75,7 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
     pub fn iter<T: LTVItem<ED>>(&self) -> LTVFieldIterator<'a, T, ED, LENGTH_SIZE> {
         LTVFieldIterator::new(self.body)
     }
-    pub fn get_item_optional<T: LTVItem<ED>>(&self, field_id: usize) -> LTVResult<Option<T::Item>> {
+    pub fn get_item_optional<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Option<T::Item>> {
         for o in self.iter::<LTVFieldBinary>() {
             let binary_field = o?;
 
@@ -88,14 +88,14 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
         Ok(None)
     }
 
-    pub fn get_item<T: LTVItem<ED>>(&self, field_id: usize) -> LTVResult<T::Item> {
+    pub fn get_item<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<T::Item> {
         match self.get_item_optional::<T>(field_id)? {
             Some(o) => Ok(o),
             None => return T::from_ltv(field_id, &[]),
         }
     }
 
-    pub fn parse_ltv<'b>(data: &'b [u8]) -> LTVResult<(usize, usize, &'b [u8])> {
+    pub fn parse_ltv<'b>(data: &'b [u8]) -> LTVResult<(usize, u8, &'b [u8])> {
         let length = match LENGTH_SIZE {
             1 => <u8 as LTVItem<ED>>::from_ltv(0, &data[..1])? as usize,
             2 => <u16 as LTVItem<ED>>::from_ltv(0, &data[..2])? as usize,
@@ -110,7 +110,7 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
             });
         }
 
-        let field_type = data[LENGTH_SIZE] as usize;
+        let field_type = data[LENGTH_SIZE];
         let ltv_data = &data[LENGTH_SIZE + 1..LENGTH_SIZE + 1 + (length - LENGTH_SIZE)];
 
         Ok((expected_length, field_type, ltv_data))
@@ -137,7 +137,7 @@ mod tests {
     }
     impl<const ED: ByteOrder> LTVItem<ED> for InnerStructData {
         type Item = InnerStructData;
-        fn from_ltv(_field_id: usize, data: &[u8]) -> LTVResult<Self> {
+        fn from_ltv(_field_id: u8, data: &[u8]) -> LTVResult<Self> {
             let reader = LTVReader::<ED, 1>::new(&data);
 
             Ok(InnerStructData {

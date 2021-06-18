@@ -3,7 +3,7 @@
 mod error;
 mod object;
 mod reader;
-mod sets;
+mod collection;
 mod writer;
 
 pub use ltv_derive::*;
@@ -17,9 +17,8 @@ pub enum ByteOrder {
 pub const DEFAULT_ED: ByteOrder = ByteOrder::BE;
 
 pub use error::{LTVError, LTVResult};
-pub use object::{LTVItem, LTVObject, LTVObjectGroup};
+pub use object::{LTVItem, LTVObject, LTVObjectGroup, LTVObjectConvertable};
 pub use reader::LTVReader;
-pub use sets::LtvObjectSet;
 pub use writer::LTVContainer;
 pub use writer::LTVWriter;
 
@@ -42,7 +41,7 @@ mod tests {
 
     impl<'a> LTVItem<{ ByteOrder::BE }> for BasicLTV {
         type Item = BasicLTV;
-        fn from_ltv(_: usize, data: &[u8]) -> LTVResult<Self::Item> {
+        fn from_ltv(_: u8, data: &[u8]) -> LTVResult<Self::Item> {
             let reader = LTVReaderLE::<1>::new(data);
             Ok(BasicLTV {
                 field1: reader.get_item::<u8>(0x01)?,

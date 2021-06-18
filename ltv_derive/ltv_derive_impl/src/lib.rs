@@ -1,5 +1,5 @@
 mod object;
-mod sets;
+mod collection;
 
 use syn::{parse_macro_input, DeriveInput};
 
@@ -9,8 +9,8 @@ pub fn derive_ltv(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     object::impl_ltv(input).into()
 }
 
-#[proc_macro_derive(LtvSet, attributes(object_id, length_size, be, le))]
+#[proc_macro_derive(LtvCollection)]
 pub fn derive_ltv_set(input_tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(input_tokens as DeriveInput);
-    sets::impl_ltv_set(input).into()
+    collection::impl_ltv_collection(input).into()
 }

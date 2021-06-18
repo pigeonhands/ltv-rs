@@ -12,13 +12,23 @@ pub trait LTVObjectGroup<'a, const ED: ByteOrder>: Sized {
 
 pub trait LTVItem<const ED: ByteOrder> {
     type Item: LTVItem<ED>;
-    fn from_ltv(field_type: usize, data: &[u8]) -> LTVResult<Self::Item>;
+    fn from_ltv(field_type: u8, data: &[u8]) -> LTVResult<Self::Item>;
     fn to_ltv(&self) -> Vec<u8>;
 }
 
-pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize, const OBJECT_ID: u8>:
+pub trait LTVObjectConvertable<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>: LTVItem<ED>{
+    fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item>;
+    fn to_ltv_object(&self) -> Vec<u8>;
+}
+
+pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>:
     LTVItem<ED>
 {
+    const OBJECT_ID: u8;
+    
+}
+
+impl <'a, T: LTVObject<'a, ED, LENGTH_BYTE>, const ED: ByteOrder, const LENGTH_BYTE: usize> LTVObjectConvertable<'a, ED, LENGTH_BYTE> for T {
     fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item> {
         use crate::reader::LTVReader;
         let (_, obj_id, data) = LTVReader::<'a, ED, LENGTH_BYTE>::parse_ltv(data)?;
@@ -42,16 +52,18 @@ pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize, const OBJ
             _ => panic!("Unsupported length byte {}", LENGTH_BYTE),
         };
 
-        out_ltv.push(OBJECT_ID);
+        out_ltv.push(Self::OBJECT_ID);
         out_ltv.append(&mut data);
 
         out_ltv
     }
 }
 
+
+
 impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
     type Item = Option<T::Item>;
-    fn from_ltv(field_id: usize, data: &'_ [u8]) -> LTVResult<Self::Item> {
+    fn from_ltv(field_id: u8, data: &'_ [u8]) -> LTVResult<Self::Item> {
         if data.len() == 0{
             return Ok(None)
         }else{
@@ -70,7 +82,7 @@ impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
 
 impl<const ED: ByteOrder> LTVItem<ED> for Vec<u8> {
     type Item = Self;
-    fn from_ltv(_field_id: usize, data: &[u8]) -> LTVResult<Self> {
+    fn from_ltv(_field_id: u8, data: &[u8]) -> LTVResult<Self> {
         Ok(Vec::from(data))
     }
 
@@ -82,7 +94,7 @@ impl<const ED: ByteOrder> LTVItem<ED> for Vec<u8> {
 
 impl<const ED: ByteOrder, const LENGTH: usize> LTVItem<ED> for [u8;LENGTH] {
     type Item = Self;
-    fn from_ltv(field_id: usize, data: &[u8]) -> LTVResult<Self> {
+    fn from_ltv(field_id: u8, data: &[u8]) -> LTVResult<Self> {
         data.try_into().map_err(|_| LTVError::WrongSize {
             field_id: field_id,
             expected: LENGTH,
@@ -101,7 +113,7 @@ macro_rules! impl_numeric_ltvitem {
 
     impl<const ED: ByteOrder> LTVItem<ED> for $i {
         type Item = $i;
-        fn from_ltv(field_id: usize, data: &[u8]) -> LTVResult<Self> {
+        fn from_ltv(field_id: u8, data: &[u8]) -> LTVResult<Self> {
             let numeric_value= data
                 .try_into()
                 .and_then(|b| Ok(match ED {

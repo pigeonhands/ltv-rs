@@ -4,13 +4,13 @@ use ::quote::quote;
 use proc_macro2;
 use syn::{parenthesized, Data, DataStruct, DeriveInput, Fields, Ident, LitInt,Token, parse::{ParseStream, Parser}};
 struct LtvFieldInfo {
-    ltv_id: usize,
+    ltv_id: u8,
     ident: Option<syn::Ident>,
     ty: syn::Type,
 }
 
 #[derive(Debug)]
-enum ByteOrderOption {
+pub enum ByteOrderOption {
     BE,
     LE
 }
@@ -21,7 +21,7 @@ impl Default for ByteOrderOption{
 }
 
 #[derive(Debug, Default)]
-struct LTVObjectAttrabutes {
+pub struct LTVObjectAttrabutes {
     pub object_id: Option<u8>,
     pub length_size: Option<u8>,
     pub field_length_size: Option<u8>,
@@ -132,7 +132,7 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
             };
             let full_name = format!("{}::{}", &struct_name, ident_name);
 
-            let ltv_id: usize = {
+            let ltv_id: u8 = {
                 let ltv_id_lit: LitInt = f
                     .attrs
                     .into_iter()
@@ -174,7 +174,7 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
 
         
         quote! {
-            fn from_ltv(field_id:usize, data: &[u8]) -> ::ltv::LTVResult<Self> {
+            fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
                 use ::ltv::LTVReader;
                 let reader = LTVReader::<{#byte_order}, #field_length_size>::new(&data);
                 Ok(
@@ -210,7 +210,9 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
             Some(
                 quote! {
                     #[automatically_derived]
-                    impl LTVObject<'_, {#byte_order}, #len_size, #obj_id> for #st_name{}
+                    impl LTVObject<'_, {#byte_order}, #len_size> for #st_name{
+                        const OBJECT_ID: u8 = #obj_id;
+                    }
                 }
             )
         }else{
