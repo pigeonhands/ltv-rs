@@ -105,23 +105,11 @@ impl LTVObjectAttrabutes {
     }
 }
 
-pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
-    let attrs = LTVObjectAttrabutes::parse(&input); 
-
-    let fields = match input.data {
-        Data::Struct(DataStruct {
-            fields: Fields::Named(fields),
-            ..
-        }) => fields.named,
-        _ => panic!("this derive macro only works on structs with named fields"),
-    };
+fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_macro2::TokenStream{
+    let fields = fields_named.named.clone();
 
     let struct_name = format!("{}", input.ident);
-
-   
-    
-    //let list: syn::MetaList = first_attr.parse_args().expect("Not meta.");
-
+    let attrs = LTVObjectAttrabutes::parse(&input); 
 
     let ltv_fields: Vec<LtvFieldInfo> = fields
         .into_iter()
@@ -202,7 +190,7 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
         }
     };
 
-    let st_name = input.ident;
+    let st_name = &input.ident;
 
     let obj_impl = {
         if let Some(obj_id) = attrs.object_id {
@@ -236,6 +224,61 @@ pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
    // use std::fs;
    // fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
     e
+}
+
+fn impl_ltv_unnamed(input: &DeriveInput, fields_unnamed: &syn::FieldsUnnamed)-> proc_macro2::TokenStream{
+    let fields = fields_unnamed.unnamed.clone();
+    let attrs = LTVObjectAttrabutes::parse(&input); 
+    let struct_name = format!("{}", input.ident);
+
+    let field = {
+        let mut field_iter = fields.iter();
+        let single_item = field_iter.next().expect("Unnamed struct must have a inner type.");
+        if let Some(_) = field_iter.next(){
+            panic!("Unnamed struct must only have a single inner type.");
+        }
+        single_item
+    };
+
+    let byte_order = match attrs.byte_order{
+        ByteOrderOption::BE => quote! { ::ltv::ByteOrder::BE },
+        ByteOrderOption::LE => quote! { ::ltv::ByteOrder::LE },
+    };
+
+    let struct_ident = &input.ident;
+    let e = quote! {
+        #[automatically_derived]
+        impl LTVItem<{#byte_order}> for #struct_ident {
+            type Item = #field;
+
+            fn to_ltv(&self) -> Vec<u8>{
+                <Self::Item as LTVItem<{#byte_order}>>::to_ltv(&self.0)
+            }
+
+            fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self::Item> {
+                <Self::Item as LTVItem<{#byte_order}>>::from_ltv(field_id, data)
+            }
+        }
+    };
+
+    //use std::fs;
+    //fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
+    e
+}
+
+pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
+    
+     match &input.data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(fields),
+            ..
+        }) => impl_ltv_named(&input, fields),
+        Data::Struct(DataStruct {
+            fields: Fields::Unnamed(fields),
+            ..
+        }) => impl_ltv_unnamed(&input, fields),
+        _ => panic!("this derive macro only works on structs"),
+    }
 }
 /*
 

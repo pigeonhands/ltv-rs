@@ -29,6 +29,10 @@ pub type LTVWriterLE<W, const LENGTH_SIZE: usize> = LTVWriter<W, { ByteOrder::LE
 pub type LTVReaderBE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::BE }, LENGTH_SIZE>;
 pub type LTVReaderLE<'a, const LENGTH_SIZE: usize> = LTVReader<'a, { ByteOrder::LE }, LENGTH_SIZE>;
 
+pub fn get_ltv<T: LTVItem<ED>, const ED: ByteOrder>(obj: &T) -> Vec<u8> {
+    obj.to_ltv()
+}
+
 #[cfg(test)]
 mod tests {
 
