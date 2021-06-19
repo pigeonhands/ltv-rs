@@ -23,6 +23,7 @@ pub trait LTVItemMany<const ED: ByteOrder> : Sized {
     type Item : LTVItem<ED>;
     fn new() -> Self;
     fn add_item(&mut self, v: Self::Item);
+    fn get_items<'a>(&'a self) -> Vec<&'a Self::Item>;
 }
 impl <T: LTVItem<ED>, const ED: ByteOrder> LTVItemMany<ED> for Vec<T> {
     type Item = T;
@@ -31,6 +32,9 @@ impl <T: LTVItem<ED>, const ED: ByteOrder> LTVItemMany<ED> for Vec<T> {
     }
     fn add_item(&mut self, v: Self::Item) {
         self.push(v)
+    }
+    fn get_items<'a>(&'a self) -> Vec<&'a Self::Item>{
+        self.iter().collect()
     }
 }
 

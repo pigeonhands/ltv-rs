@@ -189,7 +189,7 @@ fn impl_ltv_named(
         let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
             if *is_list {
                 quote! {
-                    #ident: reader.get_all_items::<#ty>(#ltv_id)?
+                    #ident: reader.get_many::<_, <#ty as LTVItemMany<#byte_order>>::Item>(#ltv_id)?
                 }
             }else{
                 quote! {
@@ -213,10 +213,19 @@ fn impl_ltv_named(
     };
 
     let to_ltv_fn = {
-        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ltv_id, .. }| {
-            quote! {
-                buffer.write_ltv(#ltv_id, &self.#ident).ok();
+        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ltv_id, is_list, .. }| {
+            if *is_list{
+                quote! {
+                    for o in &self.#ident.get_items(){
+                        buffer.write_ltv(#ltv_id, o).ok();
+                    }
+                }
+            }else{
+                quote! {
+                    buffer.write_ltv(#ltv_id, &self.#ident).ok();
+                }
             }
+            
         });
 
         quote! {
