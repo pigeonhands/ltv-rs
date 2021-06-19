@@ -8,6 +8,7 @@ pub enum LTVError {
         recieved: usize,
     },
     NotFound(u8),
+    UnexpectedValue(u8, String)
 }
 
 impl Error for LTVError {}

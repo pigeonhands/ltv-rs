@@ -64,6 +64,23 @@ impl<'a, T: LTVObject<'a, ED, LENGTH_BYTE>, const ED: ByteOrder, const LENGTH_BY
     }
 }
 
+impl<'a, const ED: ByteOrder> LTVItem<ED> for () {
+    type Item = ();
+    fn from_ltv(field_id: u8, _: &'_ [u8]) -> LTVResult<Self::Item> {
+        Err(
+            LTVError::UnexpectedValue(field_id, format!("`()` value should not exist."))
+        )
+    }
+
+    fn to_ltv(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    fn not_found(_: u8) -> LTVResult<Self::Item> {
+        Ok(())
+    }
+}
+
 impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
     type Item = Option<T::Item>;
     fn from_ltv(field_id: u8, data: &'_ [u8]) -> LTVResult<Self::Item> {
