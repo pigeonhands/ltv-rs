@@ -18,7 +18,7 @@ impl<W: io::Write, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVContainer<E
         }
 
         let mut size: usize = 0;
-        
+
         match LENGTH_SIZE {
             1 => size += self.write(&[(data.len() as u8) + 1, obj_id as u8])?,
             2 => {

@@ -1,6 +1,6 @@
 #![feature(const_generics)]
-mod object;
 mod collection;
+mod object;
 
 use syn::{parse_macro_input, DeriveInput};
 

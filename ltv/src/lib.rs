@@ -1,9 +1,9 @@
 #![feature(const_generics)]
 
+mod collection;
 mod error;
 mod object;
 mod reader;
-mod collection;
 mod writer;
 
 pub use ltv_derive::*;
@@ -17,7 +17,7 @@ pub enum ByteOrder {
 pub const DEFAULT_ED: ByteOrder = ByteOrder::BE;
 
 pub use error::{LTVError, LTVResult};
-pub use object::{LTVItem, LTVObject, LTVObjectGroup, LTVObjectConvertable};
+pub use object::{LTVItem, LTVObject, LTVObjectConvertable, LTVObjectGroup};
 pub use reader::LTVReader;
 pub use writer::LTVContainer;
 pub use writer::LTVWriter;

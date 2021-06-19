@@ -33,5 +33,4 @@ fn main() {
     println!("{:?}", &ltv_bytes);
     let new_ltv = ExampleStruct::from_ltv_object(&ltv_bytes).unwrap();
     assert_eq!(original_ltv, new_ltv);
-    
 }

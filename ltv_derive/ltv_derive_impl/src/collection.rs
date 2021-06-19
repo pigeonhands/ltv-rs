@@ -1,4 +1,4 @@
-use super::object::{LTVObjectAttrabutes, ByteOrderOption};
+use super::object::{ByteOrderOption, LTVObjectAttrabutes};
 
 use ::quote::quote;
 use proc_macro2::{self, Ident};
@@ -11,21 +11,26 @@ struct LtvCollectionInfo {
 }
 
 pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
-    let attrs = LTVObjectAttrabutes::parse(&input); 
+    let attrs = LTVObjectAttrabutes::parse(&input);
     let enum_ident = input.ident;
 
-    let variants : Vec<LtvCollectionInfo> = match input.data {
+    let variants: Vec<LtvCollectionInfo> = match input.data {
         Data::Enum(DataEnum { variants, .. }) => variants,
         _ => panic!("this derive macro only works on enums"),
-    }.into_iter().map(|v|{
-        let inner_data = v.fields.into_iter().next().expect("Requires enums with LTVItems as fields.  `MyEnum::Object1(MyLtvItem)");
-        LtvCollectionInfo{
+    }
+    .into_iter()
+    .map(|v| {
+        let inner_data = v
+            .fields
+            .into_iter()
+            .next()
+            .expect("Requires enums with LTVItems as fields.  `MyEnum::Object1(MyLtvItem)");
+        LtvCollectionInfo {
             enum_field: v.ident,
-            inner_data
+            inner_data,
         }
-    }).collect();
-
-
+    })
+    .collect();
 
     let from_ltv_fn = {
         let object_match_branches = variants.iter().map(|info| {
@@ -80,14 +85,13 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
         }
     };
 
-
-    let byte_order = match attrs.byte_order{
+    let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
         ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
         ByteOrderOption::None => quote! { T },
     };
 
-    let byte_order_impl = match attrs.byte_order{
+    let byte_order_impl = match attrs.byte_order {
         ByteOrderOption::BE => quote! { impl LTVItem<{::ltv::ByteOrder::BE}> },
         ByteOrderOption::LE => quote! {impl LTVItem<{::ltv::ByteOrder::LE}> },
         ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> LTVItem<ED> },
@@ -111,14 +115,14 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
                 let (_, obj_id, data) = LTVReader::<'a, #byte_order, #len_size>::parse_ltv(data)?;
                 Ok(Self::from_ltv(obj_id, data)?)
             }
-        
+
             fn to_ltv_object(&self) -> Vec<u8> {
                 #to_ltv_object_branches
             }
         }
     };
 
-   //use std::fs;
-   //fs::write(format!("object_impl_{}.rs", &enum_ident), e.to_string()).ok();
+    //use std::fs;
+    //fs::write(format!("object_impl_{}.rs", &enum_ident), e.to_string()).ok();
     e
 }

@@ -2,7 +2,11 @@ use std::collections::HashSet;
 
 use ::quote::quote;
 use proc_macro2;
-use syn::{parenthesized, Data, DataStruct, DeriveInput, Fields, Ident, LitInt,Token, parse::{ParseStream, Parser}};
+use syn::{
+    parenthesized,
+    parse::{ParseStream, Parser},
+    Data, DataStruct, DeriveInput, Fields, Ident, LitInt, Token,
+};
 struct LtvFieldInfo {
     ltv_id: u8,
     ident: Option<syn::Ident>,
@@ -15,8 +19,8 @@ pub enum ByteOrderOption {
     LE,
     None,
 }
-impl Default for ByteOrderOption{
-    fn default() -> Self{
+impl Default for ByteOrderOption {
+    fn default() -> Self {
         ByteOrderOption::BE
     }
 }
@@ -29,23 +33,27 @@ pub struct LTVObjectAttrabutes {
     pub byte_order: ByteOrderOption,
 }
 
-
 impl LTVObjectAttrabutes {
     pub fn parse(input: &DeriveInput) -> Self {
-        if let Some(a) = input.attrs.iter().filter(|a| a.path.is_ident("object")).next() {
+        if let Some(a) = input
+            .attrs
+            .iter()
+            .filter(|a| a.path.is_ident("object"))
+            .next()
+        {
             let tokens = a.tokens.clone();
             let o = (|input_bracketed: ParseStream<'_>| -> syn::parse::Result<Self> {
                 let input;
                 parenthesized!(input in input_bracketed);
-        
+
                 let mut ltv_args = LTVObjectAttrabutes::default();
 
-                let mut seen_arguments : HashSet<Ident> = HashSet::new();
-                loop{
+                let mut seen_arguments: HashSet<Ident> = HashSet::new();
+                loop {
                     if input.is_empty() {
                         break;
                     }
-                    
+
                     let ident: Ident = input.parse()?;
                     let _eq_token: Token![=] = input.parse()?;
 
@@ -59,34 +67,48 @@ impl LTVObjectAttrabutes {
                     let ident_str = ident.to_string();
                     match ident_str.as_str() {
                         "id" => {
-                            ltv_args.object_id = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
-                                ident.span(),
-                                "unexpected argument value; this should be a u8",
-                            ))?);
-                        },
+                            ltv_args.object_id =
+                                Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| {
+                                    syn::parse::Error::new(
+                                        ident.span(),
+                                        "unexpected argument value; this should be a u8",
+                                    )
+                                })?);
+                        }
                         "length_size" => {
-                            ltv_args.length_size = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
-                                ident.span(),
-                                "unexpected argument value; this should be a usize",
-                            ))?);
-                        },"field_length_size" => {
-                            ltv_args.field_length_size = Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| syn::parse::Error::new(
-                                ident.span(),
-                                "unexpected argument value; this should be a usize",
-                            ))?);
-                        }, "byte_order" => {
+                            ltv_args.length_size =
+                                Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| {
+                                    syn::parse::Error::new(
+                                        ident.span(),
+                                        "unexpected argument value; this should be a usize",
+                                    )
+                                })?);
+                        }
+                        "field_length_size" => {
+                            ltv_args.field_length_size =
+                                Some(input.parse::<LitInt>()?.base10_parse().map_err(|_| {
+                                    syn::parse::Error::new(
+                                        ident.span(),
+                                        "unexpected argument value; this should be a usize",
+                                    )
+                                })?);
+                        }
+                        "byte_order" => {
                             match input.parse::<Ident>()?.to_string().to_uppercase().as_str() {
                                 "BE" => {
                                     ltv_args.byte_order = ByteOrderOption::BE;
-                                }, "LE" => {
+                                }
+                                "LE" => {
                                     ltv_args.byte_order = ByteOrderOption::LE;
-                                },
-                                _ => return Err(syn::parse::Error::new(
-                                    ident.span(),
-                                    "byte_order must be BE or LE",
-                                ))
+                                }
+                                _ => {
+                                    return Err(syn::parse::Error::new(
+                                        ident.span(),
+                                        "byte_order must be BE or LE",
+                                    ))
+                                }
                             }
-                        },
+                        }
                         _ => panic!("Invalid argument {}", &ident_str),
                     }
 
@@ -106,11 +128,14 @@ impl LTVObjectAttrabutes {
     }
 }
 
-fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_macro2::TokenStream{
+fn impl_ltv_named(
+    input: &DeriveInput,
+    fields_named: &syn::FieldsNamed,
+) -> proc_macro2::TokenStream {
     let fields = fields_named.named.clone();
 
     let struct_name = format!("{}", input.ident);
-    let attrs = LTVObjectAttrabutes::parse(&input); 
+    let attrs = LTVObjectAttrabutes::parse(&input);
 
     let ltv_fields: Vec<LtvFieldInfo> = fields
         .into_iter()
@@ -146,8 +171,7 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
         })
         .collect();
 
- 
-    let byte_order = match attrs.byte_order{
+    let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
         ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
         ByteOrderOption::None => quote! { T },
@@ -162,7 +186,6 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
             }
         });
 
-        
         quote! {
             fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
                 use ::ltv::LTVReader;
@@ -197,19 +220,16 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
     let obj_impl = {
         if let Some(obj_id) = attrs.object_id {
             let len_size = attrs.length_size.unwrap_or(1) as usize;
-            Some(
-                quote! {
-                    #[automatically_derived]
-                    impl LTVObject<'_, #byte_order, #len_size> for #st_name{
-                        const OBJECT_ID: u8 = #obj_id;
-                    }
+            Some(quote! {
+                #[automatically_derived]
+                impl LTVObject<'_, #byte_order, #len_size> for #st_name{
+                    const OBJECT_ID: u8 = #obj_id;
                 }
-            )
-        }else{
+            })
+        } else {
             None
         }
     };
-    
 
     let e = quote! {
         #[automatically_derived]
@@ -228,27 +248,32 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
     e
 }
 
-fn impl_ltv_unnamed(input: &DeriveInput, fields_unnamed: &syn::FieldsUnnamed)-> proc_macro2::TokenStream{
+fn impl_ltv_unnamed(
+    input: &DeriveInput,
+    fields_unnamed: &syn::FieldsUnnamed,
+) -> proc_macro2::TokenStream {
     let fields = fields_unnamed.unnamed.clone();
-    let attrs = LTVObjectAttrabutes::parse(&input); 
+    let attrs = LTVObjectAttrabutes::parse(&input);
     let struct_name = format!("{}", input.ident);
 
     let field = {
         let mut field_iter = fields.iter();
-        let single_item = field_iter.next().expect("Unnamed struct must have a inner type.");
-        if let Some(_) = field_iter.next(){
+        let single_item = field_iter
+            .next()
+            .expect("Unnamed struct must have a inner type.");
+        if let Some(_) = field_iter.next() {
             panic!("Unnamed struct must only have a single inner type.");
         }
         single_item
     };
 
-    let byte_order = match attrs.byte_order{
+    let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
         ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
         ByteOrderOption::None => quote! { T },
     };
 
-    let byte_order_impl = match attrs.byte_order{
+    let byte_order_impl = match attrs.byte_order {
         ByteOrderOption::BE => quote! { impl LTVItem<{::ltv::ByteOrder::BE}> },
         ByteOrderOption::LE => quote! { impl LTVItem<{::ltv::ByteOrder::LE}> },
         ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> LTVItem<ED> },
@@ -276,8 +301,7 @@ fn impl_ltv_unnamed(input: &DeriveInput, fields_unnamed: &syn::FieldsUnnamed)-> 
 }
 
 pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
-    
-     match &input.data {
+    match &input.data {
         Data::Struct(DataStruct {
             fields: Fields::Named(fields),
             ..
