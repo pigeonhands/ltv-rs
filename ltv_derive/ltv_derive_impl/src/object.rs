@@ -189,8 +189,7 @@ fn impl_ltv_named(
         let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
             if *is_list {
                 quote! {
-                    return todo!("ltv_field_list");
-                    //#ident: reader.get_item::<#ty>(#ltv_id)?
+                    #ident: reader.get_all_items::<#ty>(#ltv_id)?
                 }
             }else{
                 quote! {
