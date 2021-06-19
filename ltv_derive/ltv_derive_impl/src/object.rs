@@ -264,7 +264,7 @@ fn impl_ltv_named(
     };
 
     //use std::fs;
-    //fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
+    //fs::write(format!("target/object_impl_{}.rs", &struct_name), e.to_string()).ok();
     e
 }
 
@@ -314,7 +314,7 @@ fn impl_ltv_unnamed(
     };
 
     //use std::fs;
-    //fs::write(format!("object_impl_unnamed_{}.rs", &struct_name), e.to_string()).ok();
+    //fs::write(format!("target/object_impl_unnamed_{}.rs", &struct_name), e.to_string()).ok();
     e
 }
 
