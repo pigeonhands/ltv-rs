@@ -258,14 +258,14 @@ fn impl_ltv_unnamed(input: &DeriveInput, fields_unnamed: &syn::FieldsUnnamed)-> 
     let e = quote! {
         #[automatically_derived]
         #byte_order_impl for #struct_ident {
-            type Item = #field;
+            type Item = Self;
 
             fn to_ltv(&self) -> Vec<u8>{
-                <Self::Item as LTVItem<#byte_order>>::to_ltv(&self.0)
+                <#field as LTVItem<#byte_order>>::to_ltv(&self.0)
             }
 
-            fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self::Item> {
-                <Self::Item as LTVItem<#byte_order>>::from_ltv(field_id, data)
+            fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
+                Ok(Self(<#field as LTVItem<#byte_order>>::from_ltv(field_id, data)?))
             }
         }
     };

@@ -138,5 +138,4 @@ mod tests {
             ltv::get_ltv::<_, {ByteOrder::BE}>(&obj)
         );
     }
-
 }
