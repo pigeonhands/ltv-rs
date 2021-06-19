@@ -14,6 +14,10 @@ pub trait LTVItem<const ED: ByteOrder> {
     type Item: LTVItem<ED>;
     fn from_ltv(field_type: u8, data: &[u8]) -> LTVResult<Self::Item>;
     fn to_ltv(&self) -> Vec<u8>;
+
+    fn not_found(field_id: u8) -> LTVResult<Self::Item> {
+        Err(LTVError::NotFound(field_id))
+    }
 }
 
 pub trait LTVObjectConvertable<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>:
@@ -63,11 +67,7 @@ impl<'a, T: LTVObject<'a, ED, LENGTH_BYTE>, const ED: ByteOrder, const LENGTH_BY
 impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
     type Item = Option<T::Item>;
     fn from_ltv(field_id: u8, data: &'_ [u8]) -> LTVResult<Self::Item> {
-        if data.len() == 0 {
-            return Ok(None);
-        } else {
-            Ok(Some(T::from_ltv(field_id, data)?))
-        }
+        Ok(Some(T::from_ltv(field_id, data)?))
     }
 
     fn to_ltv(&self) -> Vec<u8> {
@@ -76,6 +76,10 @@ impl<'a, T: LTVItem<ED>, const ED: ByteOrder> LTVItem<ED> for Option<T> {
         } else {
             Vec::new()
         }
+    }
+
+    fn not_found(_: u8) -> LTVResult<Self::Item> {
+        Ok(None)
     }
 }
 

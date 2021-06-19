@@ -56,6 +56,7 @@ mod tests {
             writer.write_ltv(0x01, &self.field1).ok();
             writer.into_inner()
         }
+
     }
     #[test]
     fn writer_to_reader() {

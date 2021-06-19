@@ -91,7 +91,7 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
     pub fn get_item<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<T::Item> {
         match self.get_item_optional::<T>(field_id)? {
             Some(o) => Ok(o),
-            None => return T::from_ltv(field_id, &[]),
+            None => return T::not_found(field_id),
         }
     }
 
