@@ -28,10 +28,10 @@ mod tests {
     }
 
     #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-    #[object(id = 10, length_size = 1, byte_order=LE)]
+    #[object(id = 10, length_size = 2, byte_order=LE)]
     struct LTVObjectExample {
         #[ltv_field(1)]
-        field1: u8,
+        field1: u16,
         #[ltv_field(2)]
         field2: Option<u8>,
     }
@@ -59,17 +59,19 @@ mod tests {
         assert_eq!(
             my_object_bytes,
             vec![
-                4,  // Length of object  (length can be 1 or two bytes by setting length_size)
+                5,  // Length of object  (length can be 1 or two bytes by setting length_size)
+                0,
                 10, // Outer object ID (LTVObjectExample)
-                2,  // Length of Field (field1)
+                3,  // Length of Field (field1)
                 1,  // Field ID (field1)
-                55  //Field Value
+                55,  //Field Value
+                0
             ]
         )
     }
 
     #[derive(Debug, LtvCollection, PartialEq, Eq)]
-    #[object(byte_order=LE)]
+    #[object(byte_order=LE, length_size=2)]
     enum MyObjects {
         Object1(LTVObjectExample),
     }

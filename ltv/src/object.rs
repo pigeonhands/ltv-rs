@@ -43,6 +43,13 @@ pub trait LTVObjectConvertable<'a, const ED: ByteOrder, const LENGTH_BYTE: usize
 {
     fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self>;
     fn to_ltv_object(&self) -> Vec<u8>;
+
+     // LTV without the [L]ength
+     fn from_ltv_object_body(data: &'a [u8])-> LTVResult<Self>{
+        let obj_id = data[0];
+        let body = &data[1..];
+        Ok(Self::from_ltv(obj_id, body)?)
+    }
 }
 
 pub trait LTVObject<const LENGTH_BYTE: usize> {
@@ -64,12 +71,13 @@ impl<
 
     fn to_ltv_object(&self) -> Vec<u8> {
         let mut data = self.to_ltv();
-        let mut out_ltv = Vec::with_capacity(LENGTH_BYTE + 1);
+        let body_length = data.len() + 1;
+        let mut out_ltv = Vec::with_capacity(LENGTH_BYTE + body_length);
 
         match LENGTH_BYTE {
-            1 => out_ltv.push((data.len() + 1) as u8),
+            1 => out_ltv.push(body_length as u8),
             2 => {
-                let lengthu16 = (data.len() + 1) as u16;
+                let lengthu16 = body_length as u16;
                 let bytes = match ED {
                     ByteOrder::BE => lengthu16.to_be_bytes(),
                     ByteOrder::LE => lengthu16.to_le_bytes(),
