@@ -190,16 +190,14 @@ mod tests {
     #[test]
     fn item_with_list() {
         let obj = ItemWithList {
-            items: vec![1,2,3,4,5,6],
+            items: vec![1, 2, 3, 4, 5, 6],
         };
 
-        let bytes = 
-            &ltv::get_ltv::<_, { ByteOrder::BE }>(&obj);
-        
+        let bytes = &ltv::get_ltv::<_, { ByteOrder::BE }>(&obj);
+
         assert_eq!(
             obj,
-            <ItemWithList as LTVItem<{ ByteOrder::BE }>>::from_ltv(
-                10, bytes).unwrap()
+            <ItemWithList as LTVItem<{ ByteOrder::BE }>>::from_ltv(10, bytes).unwrap()
         );
     }
 }

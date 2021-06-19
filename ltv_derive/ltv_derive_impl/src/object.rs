@@ -189,7 +189,7 @@ fn impl_ltv_named(
         let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
             if *is_list {
                 quote! {
-                    #ident: reader.get_many::<_, <#ty as LTVItemMany<#byte_order>>::Item>(#ltv_id)?
+                    #ident: reader.get_many::<<#ty as LTVItemMany<#byte_order>>::Item, _>(#ltv_id)?
                 }
             }else{
                 quote! {
@@ -213,10 +213,10 @@ fn impl_ltv_named(
     };
 
     let to_ltv_fn = {
-        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ltv_id, is_list, .. }| {
+        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
             if *is_list{
                 quote! {
-                    for o in &self.#ident.get_items(){
+                    for o in <#ty as LTVItemMany<#byte_order>>::get_items(&self.#ident){
                         buffer.write_ltv(#ltv_id, o).ok();
                     }
                 }
@@ -314,7 +314,7 @@ fn impl_ltv_unnamed(
     };
 
     //use std::fs;
-    //fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
+    //fs::write(format!("object_impl_unnamed_{}.rs", &struct_name), e.to_string()).ok();
     e
 }
 

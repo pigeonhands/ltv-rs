@@ -19,6 +19,7 @@ pub trait LTVItem<const ED: ByteOrder> : Sized {
     }
 }
 
+
 pub trait LTVItemMany<const ED: ByteOrder> : Sized {
     type Item : LTVItem<ED>;
     fn new() -> Self;
@@ -37,6 +38,8 @@ impl <T: LTVItem<ED>, const ED: ByteOrder> LTVItemMany<ED> for Vec<T> {
         self.iter().collect()
     }
 }
+
+
 
 pub trait LTVObjectConvertable<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>:
     LTVItem<ED>
