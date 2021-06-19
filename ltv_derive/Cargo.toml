@@ -14,4 +14,4 @@ documentation="https://docs.rs/ltv"
 ltv_derive_impl = { version = "0.2.3", path = "./ltv_derive_impl" }
 
 [dev-dependencies]
-ltv = { version = "0.2", path = "../ltv" }
+ltv = { version = "0.2.6", path = "../ltv" }

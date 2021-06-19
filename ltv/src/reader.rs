@@ -25,8 +25,7 @@ impl<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize>
 impl<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize> Iterator
     for LTVFieldIterator<'a, T, ED, LENGTH_SIZE>
 {
-    type Item = LTVResult<T::Item>;
-
+    type Item = LTVResult<T>;
     fn next(&mut self) -> Option<Self::Item> {
         while self.i < self.body.len() {
             let (length, ltv_id, data) =
@@ -48,8 +47,7 @@ pub struct LTVFieldBinary {
 }
 
 impl<'a, const ED: ByteOrder> LTVItem<ED> for LTVFieldBinary {
-    type Item = LTVFieldBinary;
-    fn from_ltv(field_id: u8, data: &[u8]) -> LTVResult<Self::Item> {
+    fn from_ltv(field_id: u8, data: &[u8]) -> LTVResult<Self> {
         Ok(Self {
             field_id,
             data: Vec::from(data),
@@ -75,7 +73,7 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
     pub fn iter<T: LTVItem<ED>>(&self) -> LTVFieldIterator<'a, T, ED, LENGTH_SIZE> {
         LTVFieldIterator::new(self.body)
     }
-    pub fn get_item_optional<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Option<T::Item>> {
+    pub fn get_item_optional<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Option<T>> {
         for o in self.iter::<LTVFieldBinary>() {
             let binary_field = o?;
 
@@ -88,14 +86,14 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
         Ok(None)
     }
 
-    pub fn get_item<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<T::Item> {
+    pub fn get_item<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<T> {
         match self.get_item_optional::<T>(field_id)? {
             Some(o) => Ok(o),
             None => return T::not_found(field_id),
         }
     }
 
-    pub fn get_all_items<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Vec<T::Item>> {
+    pub fn get_all_items<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Vec<T>> {
         let mut v = Vec::new();
         for o in self.iter::<LTVFieldBinary>() {
             let binary_field = o?;
@@ -149,7 +147,6 @@ mod tests {
         field2: u16,
     }
     impl<const ED: ByteOrder> LTVItem<ED> for InnerStructData {
-        type Item = InnerStructData;
         fn from_ltv(_field_id: u8, data: &[u8]) -> LTVResult<Self> {
             let reader = LTVReader::<ED, 1>::new(&data);
 

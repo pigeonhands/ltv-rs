@@ -44,8 +44,7 @@ mod tests {
     }
 
     impl<'a> LTVItem<{ ByteOrder::BE }> for BasicLTV {
-        type Item = BasicLTV;
-        fn from_ltv(_: u8, data: &[u8]) -> LTVResult<Self::Item> {
+        fn from_ltv(_: u8, data: &[u8]) -> LTVResult<Self> {
             let reader = LTVReaderLE::<1>::new(data);
             Ok(BasicLTV {
                 field1: reader.get_item::<u8>(0x01)?,

@@ -96,7 +96,7 @@ struct BasicLTV{
 }
 
 impl<'a> LTVItem<{ ByteOrder::LE }> for BasicLTV {
-    type Item = BasicLTV;
+    type Item = Self;
     fn from_ltv(_: usize, data: &[u8]) -> LTVResult<Self::Item> {
         let reader = LTVReaderLE::<1>::new(data);
         Ok(BasicLTV {
@@ -133,7 +133,7 @@ struct InnerStructData {
     field2: u16,
 }
 impl<const ED: ByteOrder> LTVItem<ED> for InnerStructData {
-    type Item = InnerStructData;
+    type Item = Self;
     fn from_ltv(_field_id: usize, data: &[u8]) -> LTVResult<Self> {
         let reader = LTVReader::<ED, 1>::new(&data);
 
