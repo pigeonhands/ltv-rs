@@ -125,6 +125,14 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
 
         Ok((expected_length, field_type, ltv_data))
     }
+
+    pub fn get_field<T: LTVItem<ED>>(data: &'a [u8], field_id: u8) -> LTVResult<T> {
+        let r = Self::new(data);
+        match r.get_item_optional::<T>(field_id)? {
+            Some(o) => Ok(o),
+            None => return T::not_found(field_id),
+        }
+    }
 }
 
 #[cfg(test)]
