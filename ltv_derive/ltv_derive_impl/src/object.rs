@@ -204,7 +204,6 @@ fn impl_ltv_named(
                     #ident: reader.get_item::<#ty>(#ltv_id)?
                 }
             }
-            
         });
 
         quote! {
