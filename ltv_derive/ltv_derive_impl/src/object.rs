@@ -274,13 +274,14 @@ fn impl_ltv_named(
 
         #obj_impl
     };
-
+    /*
     use std::fs;
     fs::write(
         format!("target/object_impl_{}.rs", &struct_name),
         e.to_string(),
     )
     .ok();
+    */
     e
 }
 
@@ -290,7 +291,7 @@ fn impl_ltv_unnamed(
 ) -> proc_macro2::TokenStream {
     let fields = fields_unnamed.unnamed.clone();
     let attrs = LTVObjectAttrabutes::parse(&input);
-    let struct_name = format!("{}", input.ident);
+    //let struct_name = format!("{}", input.ident);
 
     let field = {
         let mut field_iter = fields.iter();
@@ -328,13 +329,14 @@ fn impl_ltv_unnamed(
             }
         }
     };
-
+    /*
     use std::fs;
     fs::write(
         format!("target/object_impl_unnamed_{}.rs", &struct_name),
         e.to_string(),
     )
-    .ok();
+    .ok();'
+    */
     e
 }
 

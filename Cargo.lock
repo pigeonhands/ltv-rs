@@ -4,14 +4,14 @@ version = 3
 
 [[package]]
 name = "ltv"
-version = "0.2.10"
+version = "0.2.12"
 dependencies = [
  "ltv_derive",
 ]
 
 [[package]]
 name = "ltv_derive"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "ltv",
  "ltv_derive_impl",
@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "ltv_derive_impl"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "proc-macro2",
  "quote",

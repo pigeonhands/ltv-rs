@@ -124,12 +124,13 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
             }
         }
     };
-
+    /*
     use std::fs;
     fs::write(
         format!("target/object_impl_{}.rs", &enum_ident),
         e.to_string(),
     )
     .ok();
+    */
     e
 }
