@@ -1,3 +1,4 @@
+#![feature(const_generics)]
 pub use ltv_derive_impl::*;
 
 #[cfg(test)]
@@ -25,7 +26,7 @@ mod tests {
     }
 
     #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-    #[object(id = 10, length_size=1, byte_order=BE)]
+    #[object(id = 10, length_size=1)]
     struct LTVObjectExample {
         #[ltv_field(1)]
         field1: u8,
@@ -60,9 +61,11 @@ mod tests {
 
 
     #[derive(Debug, LtvCollection, PartialEq, Eq)]
+    #[object(byte_order=BE)]
     enum MyObjects {
         Object1(LTVObjectExample),
     }
+
 
     #[test]
     fn collection_test() {
@@ -107,6 +110,7 @@ mod tests {
 
     #[test]
     fn from_ltv_to_collection() {
+
         let o1 = LTVObjectExample { field1: 55, field2: None };
         let sbytes = o1.to_ltv_object();
         let s1 = MyObjects::Object1(o1);
@@ -121,7 +125,7 @@ mod tests {
      
 
     #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-    #[object(id = 10, length_size=1, byte_order=BE)]
+    #[object(id = 10, length_size=1)]
     struct LTVObjectUnnamed(u32);
 
     #[test]

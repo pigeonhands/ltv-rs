@@ -12,7 +12,8 @@ struct LtvFieldInfo {
 #[derive(Debug)]
 pub enum ByteOrderOption {
     BE,
-    LE
+    LE,
+    None,
 }
 impl Default for ByteOrderOption{
     fn default() -> Self{
@@ -147,8 +148,9 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
 
  
     let byte_order = match attrs.byte_order{
-        ByteOrderOption::BE => quote! { ::ltv::ByteOrder::BE },
-        ByteOrderOption::LE => quote! { ::ltv::ByteOrder::LE },
+        ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
+        ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
+        ByteOrderOption::None => quote! { T },
     };
 
     let field_length_size = attrs.field_length_size.unwrap_or(1) as usize;
@@ -164,7 +166,7 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
         quote! {
             fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
                 use ::ltv::LTVReader;
-                let reader = LTVReader::<{#byte_order}, #field_length_size>::new(&data);
+                let reader = LTVReader::<#byte_order, #field_length_size>::new(&data);
                 Ok(
                     Self{
                         #(#ltv_fields),*
@@ -183,7 +185,7 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
 
         quote! {
             fn to_ltv(&self) -> Vec<u8>{
-                let mut buffer = LTVWriter::<_, {#byte_order}, #field_length_size>::new(Vec::new());
+                let mut buffer = LTVWriter::<_, #byte_order, #field_length_size>::new(Vec::new());
                 #(#ltv_fields)*
                 buffer.into_inner()
             }
@@ -198,7 +200,7 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
             Some(
                 quote! {
                     #[automatically_derived]
-                    impl LTVObject<'_, {#byte_order}, #len_size> for #st_name{
+                    impl LTVObject<'_, #byte_order, #len_size> for #st_name{
                         const OBJECT_ID: u8 = #obj_id;
                     }
                 }
@@ -211,7 +213,7 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
 
     let e = quote! {
         #[automatically_derived]
-        impl LTVItem<{#byte_order}> for #st_name {
+        impl LTVItem<#byte_order> for #st_name {
             type Item = Self;
 
             #from_ltv_fn
@@ -221,8 +223,8 @@ fn impl_ltv_named(input: &DeriveInput, fields_named: &syn::FieldsNamed)-> proc_m
         #obj_impl
     };
 
-   // use std::fs;
-   // fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
+    //use std::fs;
+    //fs::write(format!("object_impl_{}.rs", &struct_name), e.to_string()).ok();
     e
 }
 
@@ -241,22 +243,29 @@ fn impl_ltv_unnamed(input: &DeriveInput, fields_unnamed: &syn::FieldsUnnamed)-> 
     };
 
     let byte_order = match attrs.byte_order{
-        ByteOrderOption::BE => quote! { ::ltv::ByteOrder::BE },
-        ByteOrderOption::LE => quote! { ::ltv::ByteOrder::LE },
+        ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
+        ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
+        ByteOrderOption::None => quote! { T },
+    };
+
+    let byte_order_impl = match attrs.byte_order{
+        ByteOrderOption::BE => quote! { impl LTVItem<{::ltv::ByteOrder::BE}> },
+        ByteOrderOption::LE => quote! { impl LTVItem<{::ltv::ByteOrder::LE}> },
+        ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> LTVItem<ED> },
     };
 
     let struct_ident = &input.ident;
     let e = quote! {
         #[automatically_derived]
-        impl LTVItem<{#byte_order}> for #struct_ident {
+        #byte_order_impl for #struct_ident {
             type Item = #field;
 
             fn to_ltv(&self) -> Vec<u8>{
-                <Self::Item as LTVItem<{#byte_order}>>::to_ltv(&self.0)
+                <Self::Item as LTVItem<#byte_order>>::to_ltv(&self.0)
             }
 
             fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self::Item> {
-                <Self::Item as LTVItem<{#byte_order}>>::from_ltv(field_id, data)
+                <Self::Item as LTVItem<#byte_order>>::from_ltv(field_id, data)
             }
         }
     };

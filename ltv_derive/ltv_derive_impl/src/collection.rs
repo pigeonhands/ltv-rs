@@ -82,8 +82,15 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
 
 
     let byte_order = match attrs.byte_order{
-        ByteOrderOption::BE => quote! { ::ltv::ByteOrder::BE },
-        ByteOrderOption::LE => quote! { ::ltv::ByteOrder::LE },
+        ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
+        ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
+        ByteOrderOption::None => quote! { T },
+    };
+
+    let byte_order_impl = match attrs.byte_order{
+        ByteOrderOption::BE => quote! { impl LTVItem<{::ltv::ByteOrder::BE}> },
+        ByteOrderOption::LE => quote! {impl LTVItem<{::ltv::ByteOrder::LE}> },
+        ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> LTVItem<ED> },
     };
 
     let field_length_size = attrs.field_length_size.unwrap_or(1) as usize;
@@ -91,17 +98,17 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
 
     let e = quote! {
         #[automatically_derived]
-        impl LTVItem<{#byte_order}> for #enum_ident {
+        #byte_order_impl for #enum_ident {
             type Item = Self;
 
             #from_ltv_fn
             #to_ltv_fn
         }
 
-        impl <'a> LTVObjectConvertable<'a, {#byte_order}, #len_size> for #enum_ident {
+        impl <'a> LTVObjectConvertable<'a, #byte_order, #len_size> for #enum_ident {
             fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item> {
                 use ::ltv::LTVReader;
-                let (_, obj_id, data) = LTVReader::<'a, {#byte_order}, #len_size>::parse_ltv(data)?;
+                let (_, obj_id, data) = LTVReader::<'a, #byte_order, #len_size>::parse_ltv(data)?;
                 Ok(Self::from_ltv(obj_id, data)?)
             }
         

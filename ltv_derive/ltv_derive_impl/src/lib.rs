@@ -1,3 +1,4 @@
+#![feature(const_generics)]
 mod object;
 mod collection;
 
@@ -9,7 +10,7 @@ pub fn derive_ltv(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     object::impl_ltv(input).into()
 }
 
-#[proc_macro_derive(LtvCollection)]
+#[proc_macro_derive(LtvCollection, attributes(object))]
 pub fn derive_ltv_set(input_tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(input_tokens as DeriveInput);
     collection::impl_ltv_collection(input).into()
