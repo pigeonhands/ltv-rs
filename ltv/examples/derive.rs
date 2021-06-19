@@ -1,3 +1,5 @@
+#![feature(const_generics)]
+
 use std::fmt::Debug;
 
 use ltv::*;

@@ -2,9 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     error::{LTVError, LTVResult},
-    ByteOrder,
-    LTVItem,
-    LTVItemMany
+    ByteOrder, LTVItem, LTVItemMany,
 };
 
 pub struct LTVFieldIterator<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize> {

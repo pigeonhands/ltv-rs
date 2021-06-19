@@ -11,7 +11,7 @@ struct LtvFieldInfo {
     ltv_id: u8,
     ident: Option<syn::Ident>,
     ty: syn::Type,
-    is_list: bool
+    is_list: bool,
 }
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub enum ByteOrderOption {
 }
 impl Default for ByteOrderOption {
     fn default() -> Self {
-        ByteOrderOption::BE
+        ByteOrderOption::None
     }
 }
 
@@ -151,20 +151,22 @@ fn impl_ltv_named(
                 let ltv_id_attr = f
                     .attrs
                     .into_iter()
-                    .filter(|e| e.path.is_ident("ltv_field") || e.path.is_ident("ltv_field_list") )
+                    .filter(|e| e.path.is_ident("ltv_field") || e.path.is_ident("ltv_field_list"))
                     .next()
-                    .expect(&format!("{} does not have ltv_field or ltv_field_list", &full_name));
-                    
-                let lit_id_lit_args : LitInt = ltv_id_attr.parse_args()
                     .expect(&format!(
-                        "{} has invalid field id. Must be a number",
+                        "{} does not have ltv_field or ltv_field_list",
                         &full_name
                     ));
+
+                let lit_id_lit_args: LitInt = ltv_id_attr.parse_args().expect(&format!(
+                    "{} has invalid field id. Must be a number",
+                    &full_name
+                ));
                 (
                     ltv_id_attr.path.is_ident("ltv_field_list"),
                     lit_id_lit_args
-                    .base10_parse()
-                    .expect(&format!("{} has invalid field id.", &full_name))
+                        .base10_parse()
+                        .expect(&format!("{} has invalid field id.", &full_name)),
                 )
             };
 
@@ -172,7 +174,7 @@ fn impl_ltv_named(
                 ltv_id,
                 ident: f.ident,
                 ty: f.ty,
-                is_list
+                is_list,
             }
         })
         .collect();
@@ -180,7 +182,13 @@ fn impl_ltv_named(
     let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
         ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
-        ByteOrderOption::None => quote! { T },
+        ByteOrderOption::None => quote! { ED },
+    };
+
+    let byte_order_impl = match attrs.byte_order {
+        ByteOrderOption::BE => quote! { impl },
+        ByteOrderOption::LE => quote! { impl },
+        ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> },
     };
 
     let field_length_size = attrs.field_length_size.unwrap_or(1) as usize;
@@ -201,8 +209,7 @@ fn impl_ltv_named(
 
         quote! {
             fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
-                use ::ltv::LTVReader;
-                let reader = LTVReader::<#byte_order, #field_length_size>::new(&data);
+                let reader = ::ltv::LTVReader::<#byte_order, #field_length_size>::new(&data);
                 Ok(
                     Self{
                         #(#ltv_fields),*
@@ -213,20 +220,26 @@ fn impl_ltv_named(
     };
 
     let to_ltv_fn = {
-        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
-            if *is_list{
-                quote! {
-                    for o in <#ty as LTVItemMany<#byte_order>>::get_items(&self.#ident){
-                        buffer.write_ltv(#ltv_id, o).ok();
+        let ltv_fields = ltv_fields.iter().map(
+            |LtvFieldInfo {
+                 ident,
+                 ty,
+                 ltv_id,
+                 is_list,
+             }| {
+                if *is_list {
+                    quote! {
+                        for o in <#ty as LTVItemMany<#byte_order>>::get_items(&self.#ident){
+                            buffer.write_ltv(#ltv_id, o).ok();
+                        }
+                    }
+                } else {
+                    quote! {
+                        buffer.write_ltv(#ltv_id, &self.#ident).ok();
                     }
                 }
-            }else{
-                quote! {
-                    buffer.write_ltv(#ltv_id, &self.#ident).ok();
-                }
-            }
-            
-        });
+            },
+        );
 
         quote! {
             fn to_ltv(&self) -> Vec<u8>{
@@ -236,15 +249,15 @@ fn impl_ltv_named(
             }
         }
     };
+    let len_size = attrs.length_size.unwrap_or(1) as usize;
 
     let st_name = &input.ident;
 
     let obj_impl = {
         if let Some(obj_id) = attrs.object_id {
-            let len_size = attrs.length_size.unwrap_or(1) as usize;
             Some(quote! {
                 #[automatically_derived]
-                impl LTVObject<'_, #byte_order, #len_size> for #st_name{
+                impl LTVObject<#len_size> for #st_name{
                     const OBJECT_ID: u8 = #obj_id;
                 }
             })
@@ -255,7 +268,7 @@ fn impl_ltv_named(
 
     let e = quote! {
         #[automatically_derived]
-        impl LTVItem<#byte_order> for #st_name {
+        #byte_order_impl LTVItem<#byte_order> for #st_name {
             #from_ltv_fn
             #to_ltv_fn
         }
@@ -263,8 +276,12 @@ fn impl_ltv_named(
         #obj_impl
     };
 
-    //use std::fs;
-    //fs::write(format!("target/object_impl_{}.rs", &struct_name), e.to_string()).ok();
+    use std::fs;
+    fs::write(
+        format!("target/object_impl_{}.rs", &struct_name),
+        e.to_string(),
+    )
+    .ok();
     e
 }
 
@@ -290,19 +307,19 @@ fn impl_ltv_unnamed(
     let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
         ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
-        ByteOrderOption::None => quote! { T },
+        ByteOrderOption::None => quote! { ED },
     };
 
     let byte_order_impl = match attrs.byte_order {
-        ByteOrderOption::BE => quote! { impl LTVItem<{::ltv::ByteOrder::BE}> },
-        ByteOrderOption::LE => quote! { impl LTVItem<{::ltv::ByteOrder::LE}> },
-        ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> LTVItem<ED> },
+        ByteOrderOption::BE => quote! { impl },
+        ByteOrderOption::LE => quote! { impl },
+        ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> },
     };
 
     let struct_ident = &input.ident;
     let e = quote! {
         #[automatically_derived]
-        #byte_order_impl for #struct_ident {
+        #byte_order_impl LTVItem<#byte_order> for #struct_ident {
             fn to_ltv(&self) -> Vec<u8>{
                 <#field as LTVItem<#byte_order>>::to_ltv(&self.0)
             }
@@ -313,8 +330,12 @@ fn impl_ltv_unnamed(
         }
     };
 
-    //use std::fs;
-    //fs::write(format!("target/object_impl_unnamed_{}.rs", &struct_name), e.to_string()).ok();
+    use std::fs;
+    fs::write(
+        format!("target/object_impl_unnamed_{}.rs", &struct_name),
+        e.to_string(),
+    )
+    .ok();
     e
 }
 

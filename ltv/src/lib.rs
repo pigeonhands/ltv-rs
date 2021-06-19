@@ -17,7 +17,7 @@ pub enum ByteOrder {
 pub const DEFAULT_ED: ByteOrder = ByteOrder::BE;
 
 pub use error::{LTVError, LTVResult};
-pub use object::{LTVItem, LTVObject, LTVObjectConvertable, LTVObjectGroup, LTVItemMany};
+pub use object::{LTVItem, LTVItemMany, LTVObject, LTVObjectConvertable, LTVObjectGroup};
 pub use reader::LTVReader;
 pub use writer::LTVContainer;
 pub use writer::LTVWriter;
@@ -55,7 +55,6 @@ mod tests {
             writer.write_ltv(0x01, &self.field1).ok();
             writer.into_inner()
         }
-
     }
     #[test]
     fn writer_to_reader() {

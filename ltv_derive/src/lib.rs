@@ -20,14 +20,15 @@ mod tests {
             field1: 0x69,
             field2: [12, 34, 56],
         };
-        let ltv_bytes = original_ltv.to_ltv();
+        let ltv_bytes = <ExampleStruct as LTVItem<{ ByteOrder::BE }>>::to_ltv(&original_ltv);
 
-        let new_ltv = ExampleStruct::from_ltv(10, &ltv_bytes).unwrap();
+        let new_ltv =
+            <ExampleStruct as LTVItem<{ ByteOrder::BE }>>::from_ltv(10, &ltv_bytes).unwrap();
         assert_eq!(original_ltv, new_ltv);
     }
 
     #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-    #[object(id = 10, length_size = 1)]
+    #[object(id = 10, length_size = 1, byte_order=LE)]
     struct LTVObjectExample {
         #[ltv_field(1)]
         field1: u8,
@@ -44,7 +45,11 @@ mod tests {
         let ltv_bytes = original_ltv.to_ltv_object();
 
         println!("{:?}", &ltv_bytes);
-        let new_ltv = LTVObjectExample::from_ltv_object(&ltv_bytes).unwrap();
+        let new_ltv =
+            <LTVObjectExample as LTVObjectConvertable<{ ByteOrder::LE }, 1>>::from_ltv_object(
+                &ltv_bytes,
+            )
+            .unwrap();
         assert_eq!(original_ltv, new_ltv);
     }
 
@@ -68,7 +73,7 @@ mod tests {
     }
 
     #[derive(Debug, LtvCollection, PartialEq, Eq)]
-    #[object(byte_order=BE)]
+    #[object(byte_order=LE)]
     enum MyObjects {
         Object1(LTVObjectExample),
     }
@@ -180,15 +185,75 @@ mod tests {
         );
     }
 
-    #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-    #[object(id = 1, length_size = 1)]
+    //#[object(id = 1, length_size = 1)]
+    #[derive(Debug, Default, PartialEq, Eq)]
     struct ItemWithList {
-        #[ltv_field_list(1)]
+        //#[ltv_field_list(1)]
         pub items: Vec<u8>,
+    }
+
+    impl<const ED: ::ltv::ByteOrder> LTVItem<ED> for ItemWithList {
+        fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
+            use ::ltv::LTVReader;
+            let reader = LTVReader::<ED, 1usize>::new(&data);
+            Ok(Self {
+                items: reader.get_many::<<Vec<u8> as LTVItemMany<ED>>::Item, _>(1u8)?,
+            })
+        }
+        fn to_ltv(&self) -> Vec<u8> {
+            let mut buffer = LTVWriter::<_, ED, 1usize>::new(Vec::new());
+            for o in <Vec<u8> as LTVItemMany<ED>>::get_items(&self.items) {
+                buffer.write_ltv(1u8, o).ok();
+            }
+            buffer.into_inner()
+        }
+    }
+    impl LTVObject<1> for ItemWithList {
+        const OBJECT_ID: u8 = 1u8;
     }
 
     #[test]
     fn item_with_list() {
+        let obj = ItemWithList {
+            items: vec![1, 2, 3, 4, 5, 6],
+        };
+
+        let bytes = &ltv::get_ltv::<_, { ByteOrder::BE }>(&obj);
+
+        assert_eq!(
+            obj,
+            <ItemWithList as LTVItem<{ ByteOrder::BE }>>::from_ltv(10, bytes).unwrap()
+        );
+    }
+
+    #[derive(Ltv, Debug, Default, PartialEq, Eq)]
+    pub struct MacAddress([u8; 6]);
+
+    #[derive(Ltv, Debug, Default, PartialEq, Eq)]
+    #[object(id = 0x02)]
+    pub struct ModuleInfo {
+        #[ltv_field(0x1)]
+        pub softdevice_version: u16,
+        #[ltv_field(0x2)]
+        pub chipset_id: u32,
+        //#[ltv_field(0x3)]
+        //pub mac_address: MacAddress,
+        #[ltv_field(0x4)]
+        pub bootloader_version: u16,
+        #[ltv_field(0x5)]
+        pub firmware_version: u16,
+        #[ltv_field(0x6)]
+        pub entrypoint: Option<u8>,
+    }
+
+     #[derive(Debug, LtvCollection, PartialEq, Eq)]
+     #[object(byte_order=LE)]
+    enum ReaderStuff {
+        Object1(ModuleInfo),
+    }
+
+    #[test]
+    fn rrrrr() {
         let obj = ItemWithList {
             items: vec![1, 2, 3, 4, 5, 6],
         };

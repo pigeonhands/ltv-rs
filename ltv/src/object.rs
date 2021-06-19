@@ -10,7 +10,7 @@ pub trait LTVObjectGroup<'a, const ED: ByteOrder>: Sized {
     fn from_ltv(data: &'a [u8]) -> Option<Self>;
 }
 
-pub trait LTVItem<const ED: ByteOrder> : Sized {
+pub trait LTVItem<const ED: ByteOrder>: Sized {
     fn from_ltv(field_type: u8, data: &[u8]) -> LTVResult<Self>;
     fn to_ltv(&self) -> Vec<u8>;
 
@@ -19,27 +19,24 @@ pub trait LTVItem<const ED: ByteOrder> : Sized {
     }
 }
 
-
-pub trait LTVItemMany<const ED: ByteOrder> : Sized {
-    type Item : LTVItem<ED>;
+pub trait LTVItemMany<const ED: ByteOrder>: Sized {
+    type Item: LTVItem<ED>;
     fn new() -> Self;
     fn add_item(&mut self, v: Self::Item);
     fn get_items<'a>(&'a self) -> Vec<&'a Self::Item>;
 }
-impl <T: LTVItem<ED>, const ED: ByteOrder> LTVItemMany<ED> for Vec<T> {
+impl<T: LTVItem<ED>, const ED: ByteOrder> LTVItemMany<ED> for Vec<T> {
     type Item = T;
-    fn new() -> Self{
+    fn new() -> Self {
         Vec::new()
     }
     fn add_item(&mut self, v: Self::Item) {
         self.push(v)
     }
-    fn get_items<'a>(&'a self) -> Vec<&'a Self::Item>{
+    fn get_items<'a>(&'a self) -> Vec<&'a Self::Item> {
         self.iter().collect()
     }
 }
-
-
 
 pub trait LTVObjectConvertable<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>:
     LTVItem<ED>
@@ -48,12 +45,16 @@ pub trait LTVObjectConvertable<'a, const ED: ByteOrder, const LENGTH_BYTE: usize
     fn to_ltv_object(&self) -> Vec<u8>;
 }
 
-pub trait LTVObject<'a, const ED: ByteOrder, const LENGTH_BYTE: usize>: LTVItem<ED> {
+pub trait LTVObject<const LENGTH_BYTE: usize> {
     const OBJECT_ID: u8;
 }
 
-impl<'a, T: LTVObject<'a, ED, LENGTH_BYTE>, const ED: ByteOrder, const LENGTH_BYTE: usize>
-    LTVObjectConvertable<'a, ED, LENGTH_BYTE> for T
+impl<
+        'a,
+        T: LTVObject<LENGTH_BYTE> + LTVItem<ED>,
+        const ED: ByteOrder,
+        const LENGTH_BYTE: usize,
+    > LTVObjectConvertable<'a, ED, LENGTH_BYTE> for T
 {
     fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self> {
         use crate::reader::LTVReader;
@@ -87,9 +88,10 @@ impl<'a, T: LTVObject<'a, ED, LENGTH_BYTE>, const ED: ByteOrder, const LENGTH_BY
 
 impl<'a, const ED: ByteOrder> LTVItem<ED> for () {
     fn from_ltv(field_id: u8, _: &'_ [u8]) -> LTVResult<Self> {
-        Err(
-            LTVError::UnexpectedValue(field_id, format!("`()` value should not exist."))
-        )
+        Err(LTVError::UnexpectedValue(
+            field_id,
+            format!("`()` value should not exist."),
+        ))
     }
 
     fn to_ltv(&self) -> Vec<u8> {

@@ -1,7 +1,8 @@
+#![feature(const_generics)]
 use ltv::*;
 
 #[derive(Debug, Ltv, Default, PartialEq, Eq)]
-#[object(id = 10)]
+#[object(id = 10, byte_order=BE)]
 struct ExampleSet {
     #[ltv_field(1)]
     field1: u8,
