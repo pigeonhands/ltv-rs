@@ -2,7 +2,7 @@ use super::object::{ByteOrderOption, LTVObjectAttrabutes};
 
 use ::quote::quote;
 use proc_macro2::{self, Ident};
-use syn::{Attribute, Data, DataEnum, DeriveInput, Field, Fields, LitInt};
+use syn::{Data, DataEnum, DeriveInput, Field};
 
 #[derive(Clone)]
 struct LtvCollectionInfo {
@@ -97,20 +97,17 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
         ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> LTVItem<ED> },
     };
 
-    let field_length_size = attrs.field_length_size.unwrap_or(1) as usize;
     let len_size = attrs.length_size.unwrap_or(1) as usize;
 
     let e = quote! {
         #[automatically_derived]
         #byte_order_impl for #enum_ident {
-            type Item = Self;
-
             #from_ltv_fn
             #to_ltv_fn
         }
 
         impl <'a> LTVObjectConvertable<'a, #byte_order, #len_size> for #enum_ident {
-            fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self::Item> {
+            fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self> {
                 use ::ltv::LTVReader;
                 let (_, obj_id, data) = LTVReader::<'a, #byte_order, #len_size>::parse_ltv(data)?;
                 Ok(Self::from_ltv(obj_id, data)?)

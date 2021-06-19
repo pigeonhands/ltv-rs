@@ -151,7 +151,7 @@ fn impl_ltv_named(
                 let ltv_id_attr = f
                     .attrs
                     .into_iter()
-                    .filter(|e| e.path.is_ident("ltv_field"))
+                    .filter(|e| e.path.is_ident("ltv_field") || e.path.is_ident("ltv_field_list") )
                     .next()
                     .expect(&format!("{} does not have ltv_field or ltv_field_list", &full_name));
                     
@@ -247,8 +247,6 @@ fn impl_ltv_named(
     let e = quote! {
         #[automatically_derived]
         impl LTVItem<#byte_order> for #st_name {
-            type Item = Self;
-
             #from_ltv_fn
             #to_ltv_fn
         }
@@ -296,8 +294,6 @@ fn impl_ltv_unnamed(
     let e = quote! {
         #[automatically_derived]
         #byte_order_impl for #struct_ident {
-            type Item = Self;
-
             fn to_ltv(&self) -> Vec<u8>{
                 <#field as LTVItem<#byte_order>>::to_ltv(&self.0)
             }

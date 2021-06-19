@@ -2,8 +2,9 @@ use std::marker::PhantomData;
 
 use crate::{
     error::{LTVError, LTVResult},
-    object::LTVItem,
     ByteOrder,
+    LTVItem,
+    LTVItemMany
 };
 
 pub struct LTVFieldIterator<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize> {
@@ -93,14 +94,14 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
         }
     }
 
-    pub fn get_all_items<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Vec<T>> {
-        let mut v = Vec::new();
+    pub fn get_many<T: LTVItem<ED>, M: LTVItemMany<ED>>(&self, field_id: u8) -> LTVResult<M> {
+        let mut v = M::new();
         for o in self.iter::<LTVFieldBinary>() {
             let binary_field = o?;
 
             if binary_field.field_id == field_id {
-                let o = T::from_ltv(field_id, &binary_field.data)?;
-                v.push(o);
+                let o = M::Item::from_ltv(field_id, &binary_field.data)?;
+                v.add_item(o);
             }
         }
         Ok(v)

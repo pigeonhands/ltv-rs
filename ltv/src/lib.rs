@@ -17,7 +17,7 @@ pub enum ByteOrder {
 pub const DEFAULT_ED: ByteOrder = ByteOrder::BE;
 
 pub use error::{LTVError, LTVResult};
-pub use object::{LTVItem, LTVObject, LTVObjectConvertable, LTVObjectGroup};
+pub use object::{LTVItem, LTVObject, LTVObjectConvertable, LTVObjectGroup, LTVItemMany};
 pub use reader::LTVReader;
 pub use writer::LTVContainer;
 pub use writer::LTVWriter;
