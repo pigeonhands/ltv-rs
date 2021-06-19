@@ -11,6 +11,7 @@ struct LtvFieldInfo {
     ltv_id: u8,
     ident: Option<syn::Ident>,
     ty: syn::Type,
+    is_list: bool
 }
 
 #[derive(Debug)]
@@ -146,27 +147,32 @@ fn impl_ltv_named(
             };
             let full_name = format!("{}::{}", &struct_name, ident_name);
 
-            let ltv_id: u8 = {
-                let ltv_id_lit: LitInt = f
+            let (is_list, ltv_id): (bool, u8) = {
+                let ltv_id_attr = f
                     .attrs
                     .into_iter()
                     .filter(|e| e.path.is_ident("ltv_field"))
                     .next()
-                    .expect(&format!("{} does not have ltv_field", &full_name))
-                    .parse_args()
+                    .expect(&format!("{} does not have ltv_field or ltv_field_list", &full_name));
+                    
+                let lit_id_lit_args : LitInt = ltv_id_attr.parse_args()
                     .expect(&format!(
                         "{} has invalid field id. Must be a number",
                         &full_name
                     ));
-                ltv_id_lit
+                (
+                    ltv_id_attr.path.is_ident("ltv_field_list"),
+                    lit_id_lit_args
                     .base10_parse()
                     .expect(&format!("{} has invalid field id.", &full_name))
+                )
             };
 
             LtvFieldInfo {
                 ltv_id,
                 ident: f.ident,
                 ty: f.ty,
+                is_list
             }
         })
         .collect();
@@ -180,10 +186,18 @@ fn impl_ltv_named(
     let field_length_size = attrs.field_length_size.unwrap_or(1) as usize;
 
     let from_ltv_fn = {
-        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id }| {
-            quote! {
-                #ident: reader.get_item::<#ty>(#ltv_id)?
+        let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
+            if *is_list {
+                quote! {
+                    return todo!("ltv_field_list");
+                    //#ident: reader.get_item::<#ty>(#ltv_id)?
+                }
+            }else{
+                quote! {
+                    #ident: reader.get_item::<#ty>(#ltv_id)?
+                }
             }
+            
         });
 
         quote! {

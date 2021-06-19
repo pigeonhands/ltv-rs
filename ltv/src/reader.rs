@@ -95,6 +95,19 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
         }
     }
 
+    pub fn get_all_items<T: LTVItem<ED>>(&self, field_id: u8) -> LTVResult<Vec<T::Item>> {
+        let mut v = Vec::new();
+        for o in self.iter::<LTVFieldBinary>() {
+            let binary_field = o?;
+
+            if binary_field.field_id == field_id {
+                let o = T::from_ltv(field_id, &binary_field.data)?;
+                v.push(o);
+            }
+        }
+        Ok(v)
+    }
+
     pub fn parse_ltv<'b>(data: &'b [u8]) -> LTVResult<(usize, u8, &'b [u8])> {
         let length = match LENGTH_SIZE {
             1 => <u8 as LTVItem<ED>>::from_ltv(0, &data[..1])? as usize,
