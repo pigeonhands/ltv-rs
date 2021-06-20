@@ -9,6 +9,7 @@ pub enum LTVError {
     },
     NotFound(u8),
     UnexpectedValue(u8, String),
+    InnerParseError(Box<LTVError>, String)
 }
 
 impl Error for LTVError {}

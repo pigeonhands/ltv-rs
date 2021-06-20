@@ -49,12 +49,16 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
         let object_match_branches = variants.iter().map(|info| {
             let inner_ltv = &info.inner_data;
             let branch_name = &info.enum_field;
+            let branch_err_name = format!("{}::{}",enum_ident, branch_name);
             quote! {
                 <#inner_ltv as ::ltv::LTVObject<#len_size>>::OBJECT_ID =>
                     Ok(Self::#branch_name(
                         <#inner_ltv as ::ltv::LTVItem<#byte_order>>::from_ltv(
                             <#inner_ltv as ::ltv::LTVObject<#len_size>>::OBJECT_ID, data
-                        )?
+                        ).map_err(|e| ::ltv::LTVError::InnerParseError(
+                            e.into(),
+                            format!(#branch_err_name)
+                        ))?
                     )
                 )
             }

@@ -178,6 +178,7 @@ fn impl_ltv_named(
             }
         })
         .collect();
+    let st_name = &input.ident;
 
     let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
@@ -195,13 +196,23 @@ fn impl_ltv_named(
 
     let from_ltv_fn = {
         let ltv_fields = ltv_fields.iter().map(|LtvFieldInfo { ident, ty, ltv_id, is_list }| {
+            let branch_err_name = format!("{}::{:?}", st_name, match ident{
+                Some(e) => format!("{}", e),
+                None => "<Unknown>".into()
+            });
             if *is_list {
                 quote! {
-                    #ident: reader.get_many::<<#ty as LTVItemMany<#byte_order>>::Item, _>(#ltv_id)?
+                    #ident: reader.get_many::<<#ty as LTVItemMany<#byte_order>>::Item, _>(#ltv_id).map_err(|e| ::ltv::LTVError::InnerParseError(
+                        e.into(),
+                        format!(#branch_err_name)
+                    ))?
                 }
             }else{
                 quote! {
-                    #ident: reader.get_item::<#ty>(#ltv_id)?
+                    #ident: reader.get_item::<#ty>(#ltv_id).map_err(|e| ::ltv::LTVError::InnerParseError(
+                        e.into(),
+                        format!(#branch_err_name)
+                    ))?
                 }
             }
         });
@@ -250,7 +261,6 @@ fn impl_ltv_named(
     };
     let len_size = attrs.length_size.unwrap_or(1) as usize;
 
-    let st_name = &input.ident;
 
     let obj_impl = {
         if let Some(obj_id) = attrs.object_id {
