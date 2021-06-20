@@ -28,7 +28,10 @@ impl<'a, T: LTVItem<ED>, const ED: ByteOrder, const LENGTH_SIZE: usize> Iterator
     fn next(&mut self) -> Option<Self::Item> {
         while self.i < self.body.len() {
             let (length, ltv_id, data) =
-                LTVReader::<ED, LENGTH_SIZE>::parse_ltv(&self.body[self.i..]).ok()?;
+                match LTVReader::<ED, LENGTH_SIZE>::parse_ltv(&self.body[self.i..]){
+                    Ok(v) => v,
+                    Err(e) => return Some(Err(e))
+                };
             self.i += length;
             match T::from_ltv(ltv_id, data) {
                 Ok(o) => return Some(Ok(o)),
@@ -106,12 +109,23 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
     }
 
     pub fn parse_ltv<'b>(data: &'b [u8]) -> LTVResult<(usize, u8, &'b [u8])> {
-        let length = match LENGTH_SIZE {
+        if data.len() < LENGTH_SIZE {
+            return Err(LTVError::WrongSize {
+                field_id: 0,
+                expected: LENGTH_SIZE,
+                recieved: data.len(),
+            });
+        }
+        let body_length = match LENGTH_SIZE {
             1 => <u8 as LTVItem<ED>>::from_ltv(0, &data[..1])? as usize,
             2 => <u16 as LTVItem<ED>>::from_ltv(0, &data[..2])? as usize,
             _ => panic!("Unsuppoted length size {}", LENGTH_SIZE),
         };
-        let expected_length = length + LENGTH_SIZE;
+        let data_length = body_length-1;
+        
+        let header_size = LENGTH_SIZE + 1;
+        
+        let expected_length = data_length + header_size;
         if data.len() < expected_length {
             return Err(LTVError::WrongSize {
                 field_id: 0,
@@ -119,9 +133,9 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
                 recieved: data.len(),
             });
         }
-
         let field_type = data[LENGTH_SIZE];
-        let ltv_data = &data[LENGTH_SIZE + 1..LENGTH_SIZE + 1 + (length - LENGTH_SIZE)];
+        
+        let ltv_data = &data[header_size..header_size + data_length];
 
         Ok((expected_length, field_type, ltv_data))
     }
@@ -171,9 +185,10 @@ mod tests {
     #[test]
     fn basic_inner_struct_reader() {
         let input_data: &[u8] = &[
-            0x04, 0x01, 0x02, 0x01, 0xFF, 0x08, 0x02, 0x02, 0x01, 0x55, 0x03, 0x02, 0x01, 0x00,
+            0x02, 0x01, 0xFF, 0x08, 0x02, 0x02, 0x01, 0x55, 0x03, 0x02, 0x01, 0x00,
         ];
-        let reader = LTVReaderLE::<1>::new(&input_data[2..]);
+        //let input_data: &[u8] = &[ 0x02, 0x01, 0xFF];
+        let reader = LTVReaderLE::<1>::new(&input_data[..]);
 
         let field_1 = reader.get_item::<u8>(0x1).unwrap();
         assert_eq!(field_1, 0xFF);

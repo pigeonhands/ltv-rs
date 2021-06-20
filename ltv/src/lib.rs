@@ -65,4 +65,36 @@ mod tests {
         assert_eq!(original, out);
         assert_eq!(&buffer, &[2, 0x01, 0x35]);
     }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct LTVNoBody {
+    }
+    impl<'a> LTVItem<{ ByteOrder::LE }> for LTVNoBody {
+        fn from_ltv(_: u8, data: &[u8]) -> LTVResult<Self> {
+            let _reader = LTVReaderLE::<1>::new(data);
+            Ok(LTVNoBody{})
+        }
+        fn to_ltv(&self) -> Vec<u8> {
+            Vec::new()
+        }
+    }
+    impl LTVObject<2> for LTVNoBody {
+        const OBJECT_ID: u8 = 3;
+    }
+
+    #[test]
+    fn no_body_ltv() {
+        let data = vec![
+            1,
+            0,
+            3
+        ];
+        let original = LTVNoBody::from_ltv_object(&data).unwrap();
+        assert_eq!(original, LTVNoBody{});
+        assert_eq!(
+            original.to_ltv_object(),
+            data
+        );
+    }
+
 }

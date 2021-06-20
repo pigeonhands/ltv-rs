@@ -87,9 +87,10 @@ mod tests {
         assert_eq!(
             obj_bytes,
             vec![
-                2,  // Length of Field (field1)
+                3,  // Length of Field (field1)
                 1,  // Field ID (field1)
-                55  //Field Value
+                55,  //Field Value
+                0
             ]
         )
     }
@@ -104,11 +105,13 @@ mod tests {
         assert_eq!(
             obj_bytes,
             vec![
-                4,  // Length of object  (length can be 1 or two bytes by setting length_size)
+                5,  // Length of object  (length can be 1 or two bytes by setting length_size)
+                0,
                 10, // Outer object ID (LTVObjectExample)
-                2,  // Length of Field (field1)
+                3,  // Length of Field (field1)
                 1,  // Field ID (field1)
-                55  //Field Value
+                55,  //Field Value,
+                0
             ]
         )
     }
