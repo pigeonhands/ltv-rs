@@ -121,6 +121,9 @@ impl<'a, const ED: ByteOrder, const LENGTH_SIZE: usize> LTVReader<'a, ED, LENGTH
             2 => <u16 as LTVItem<ED>>::from_ltv(0, &data[..2])? as usize,
             _ => panic!("Unsuppoted length size {}", LENGTH_SIZE),
         };
+        if body_length < 1 {
+            return Ok((LENGTH_SIZE, 0, &[]));
+        }
         let data_length = body_length-1;
         
         let header_size = LENGTH_SIZE + 1;

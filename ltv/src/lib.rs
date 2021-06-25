@@ -97,4 +97,12 @@ mod tests {
         );
     }
 
+    #[test]
+    fn zeros() {
+        let data = vec![
+            0,0,0,0,0,0,0,0
+        ];
+        let original = LTVNoBody::from_ltv_object(&data).unwrap();
+    }
+
 }
