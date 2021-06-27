@@ -206,4 +206,20 @@ mod tests {
             <ItemWithList as LTVItem<{ ByteOrder::BE }>>::from_ltv(10, bytes).unwrap()
         );
     }
+
+    #[derive(Debug, Default, PartialEq, Eq, Ltv)]
+    #[object(id = 1, byte_order=LE, length_size = 1, many=true)]
+    struct ItemUnnamedMany(Vec<u8>);
+
+    #[test]
+    fn item_unnamed_many() {
+        let data = vec![2, 1, 1, 2, 1, 2, 2, 2, 3, 2, 1, 4];
+
+        let o = ItemUnnamedMany::from_ltv(1, &data).unwrap();
+
+        assert_eq!(
+            o.0,
+           vec![1,2, 4]
+        );
+    }
 }

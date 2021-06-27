@@ -12,7 +12,7 @@ readme="README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ltv_derive = { version = "0.2.5", path = "../ltv_derive" }
+ltv_derive = { version = "0.2.6", path = "../ltv_derive" }
 
 [dev-dependencies]
-ltv_derive = { version = "0.2.5", path = "../ltv_derive" }
+ltv_derive = { version = "0.2.6", path = "../ltv_derive" }

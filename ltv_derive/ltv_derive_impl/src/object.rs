@@ -2,11 +2,7 @@ use std::collections::HashSet;
 
 use ::quote::quote;
 use proc_macro2;
-use syn::{
-    parenthesized,
-    parse::{ParseStream, Parser},
-    Data, DataStruct, DeriveInput, Fields, Ident, LitInt, Token,
-};
+use syn::{Data, DataStruct, DeriveInput, Fields, Ident, LitBool, LitInt, Token, parenthesized, parse::{ParseStream, Parser}};
 struct LtvFieldInfo {
     ltv_id: u8,
     ident: Option<syn::Ident>,
@@ -32,6 +28,7 @@ pub struct LTVObjectAttrabutes {
     pub length_size: Option<u8>,
     pub field_length_size: Option<u8>,
     pub byte_order: ByteOrderOption,
+    pub many: bool,
 }
 
 impl LTVObjectAttrabutes {
@@ -109,6 +106,9 @@ impl LTVObjectAttrabutes {
                                     ))
                                 }
                             }
+                        },
+                        "many" => {
+                            ltv_args.many = input.parse::<LitBool>()?.value();
                         }
                         _ => panic!("Invalid argument {}", &ident_str),
                     }
@@ -174,7 +174,7 @@ fn impl_ltv_named(
                 ltv_id,
                 ident: f.ident,
                 ty: f.ty,
-                is_list,
+                is_list: is_list || attrs.many,
             }
         })
         .collect();
@@ -314,6 +314,9 @@ fn impl_ltv_unnamed(
         single_item
     };
 
+    let struct_ident = &input.ident;
+    let struct_ident_str = format!("{}", &input.ident);
+
     let byte_order = match attrs.byte_order {
         ByteOrderOption::BE => quote! { {::ltv::ByteOrder::BE} },
         ByteOrderOption::LE => quote! { {::ltv::ByteOrder::LE} },
@@ -326,28 +329,81 @@ fn impl_ltv_unnamed(
         ByteOrderOption::None => quote! {impl<const ED: ::ltv::ByteOrder> },
     };
 
-    let struct_ident = &input.ident;
-    let e = quote! {
-        #[automatically_derived]
-        #byte_order_impl LTVItem<#byte_order> for #struct_ident {
-            fn to_ltv(&self) -> Vec<u8>{
-                <#field as LTVItem<#byte_order>>::to_ltv(&self.0)
-            }
+    let field_length_size = attrs.field_length_size.unwrap_or(1) as usize;
 
-            fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
-                Ok(Self(<#field as LTVItem<#byte_order>>::from_ltv(field_id, data)?))
-            }
+    let obj_impl = {
+        if let Some(obj_id) = attrs.object_id {
+            Some(quote! {
+                #[automatically_derived]
+                impl LTVObject<#field_length_size> for #struct_ident{
+                    const OBJECT_ID: u8 = #obj_id;
+                }
+            })
+        } else {
+            None
         }
     };
-    /*
-    use std::fs;
-    fs::write(
-        format!("target/object_impl_unnamed_{}.rs", &struct_name),
-        e.to_string(),
-    )
-    .ok();'
-    */
-    e
+   
+    if attrs.many {
+        let ltv_id = attrs.object_id.expect("Must have object ID with many");
+       
+        let e = quote! {
+            #[automatically_derived]
+            #byte_order_impl LTVItem<#byte_order> for #struct_ident {
+                fn to_ltv(&self) -> Vec<u8>{
+                    let mut buffer = LTVWriter::<_, #byte_order, #field_length_size>::new(Vec::new());
+                    for o in <#field as LTVItemMany<#byte_order>>::get_items(&self.0){
+                        buffer.write_ltv(#ltv_id, o).ok();
+                    }
+                    buffer.into_inner()
+                }
+    
+                fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
+                    let reader = ::ltv::LTVReader::<#byte_order, #field_length_size>::new(&data);
+
+                    Ok(Self(reader.get_many::<<#field as LTVItemMany<#byte_order>>::Item, _>(field_id).map_err(|e| ::ltv::LTVError::InnerParseError(
+                        e.into(),
+                        String::from(#struct_ident_str)
+                    ))?))
+                }
+            }
+            #obj_impl
+        };
+            /*
+            use std::fs;
+            fs::write(
+                format!("target/object_impl_unnamed_{}.rs", &struct_ident),
+                e.to_string(),
+            )
+            .ok();
+            */
+            e
+    }else{
+        let struct_ident = &input.ident;
+        let e = quote! {
+            #[automatically_derived]
+            #byte_order_impl LTVItem<#byte_order> for #struct_ident {
+                fn to_ltv(&self) -> Vec<u8>{
+                    <#field as LTVItem<#byte_order>>::to_ltv(&self.0)
+                }
+    
+                fn from_ltv(field_id: u8, data: &[u8]) -> ::ltv::LTVResult<Self> {
+                    Ok(Self(<#field as LTVItem<#byte_order>>::from_ltv(field_id, data)?))
+                }
+            }
+            #obj_impl
+        };
+            /*
+            use std::fs;
+            fs::write(
+                format!("target/object_impl_unnamed_{}.rs", &struct_name),
+                e.to_string(),
+            )
+            .ok();'
+            */
+            e
+    }
+ 
 }
 
 pub fn impl_ltv(input: DeriveInput) -> proc_macro2::TokenStream {
