@@ -198,6 +198,8 @@ impl_numeric_ltvitem! {
     i16,
     u32,
     i32,
+    u64, 
+    i64,
     u128,
     i128
 }
