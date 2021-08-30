@@ -1,4 +1,3 @@
-#![feature(const_generics)]
 use ltv::*;
 
 #[derive(Debug, Ltv, Default, PartialEq, Eq)]

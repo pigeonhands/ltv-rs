@@ -120,7 +120,7 @@ pub fn impl_ltv_collection(input: DeriveInput) -> proc_macro2::TokenStream {
         impl <'a> LTVObjectConvertable<'a, #byte_order, #len_size> for #enum_ident {
             fn from_ltv_object(data: &'a [u8]) -> LTVResult<Self> {
                 let (_, obj_id, data) = ::ltv::LTVReader::<'a, #byte_order, #len_size>::parse_ltv(data)?;
-                Ok(<Self as LTVItem<#byte_order>>::from_ltv(obj_id, data)?)
+                <Self as LTVItem<#byte_order>>::from_ltv(obj_id, data)
             }
 
             fn to_ltv_object(&self) -> Vec<u8> {

@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "ltv_derive_impl"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "proc-macro2",
  "quote",
