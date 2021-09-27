@@ -1,4 +1,4 @@
-#![feature(const_generics)]
+#![feature(adt_const_params)]
 pub use ltv_derive_impl::*;
 
 #[cfg(test)]

@@ -1,0 +1,4 @@
+{
+    "kconfig.zephyr.west": "west",
+    "kconfig.zephyr.base": "c:\\ncs\\v1.6.1\\zephyr"
+}
